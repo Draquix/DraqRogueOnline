@@ -13,36 +13,44 @@ const io = require('socket.io')(server);
 app.use(express.static(path.join(__dirname, '/static')));
 
 let SOCKET_LIST = {};
-let PLAYER_LIST = {};
+let PLAYER_LIST = [];
 let MapBox = [];
 
 
 io.on('connection', socket => {
     console.log('Some client connected...');
-
+    socket.id = Math.random();
+    SOCKET_LIST[socket.id] = socket;
+    socket.emit('handshaking',{id: socket.id,maps:MapBox});
+    
     socket.on('login', user => {
         console.log('player login: ', user);
-        player = new Player(user.username, user.passphrase, socket.id);
+        let name = user.name;
+        let pass = user.phrase;
+        player = new Player(name, pass, socket.id);
         PLAYER_LIST[socket.id] = player;
+        console.log(PLAYER_LIST);
+        socket.emit('player create',{pc:player,id: socket.id});
     });
+    
     socket.on('chat', message => {
         console.log('message from client: ', message);
         io.emit('chat', {message, id: socket.id});
     });
 });
-
+let timer = 0;
 setInterval(function() {
-    let pack = [];
-    for (var i in MAP_LIST){
-        pack.push(MapBox[i]);
-        for()
-        for (var i in SOCKET_LIST){
-            let socket = SOCKET_LIST[i];
-            socket.emit('draw map', pack);
-        };
+            let pack = {pc:[],map:MapBox};
+            for (var j in PLAYER_LIST){
+                let player = PLAYER_LIST[j];
+                pack.pc.push(player);
+                let socket = SOCKET_LIST[j];
+                socket.emit('draw player',{pack, id: socket.id});
+            }
+    timer++;
+    if ((timer%50)===0){
+        console.log(timer, 'ticks elapsed');
     }
-
-   
 }, 256);
 
 function Player (name, passphrase, id){
@@ -53,6 +61,7 @@ function Player (name, passphrase, id){
         str:1,dex:1,def:1,mHp:10,hp:10,coin:100
     };
     this.map = 0;
+    console.log("player created by name of:" , this.name);
 }
 const map0 = {
     map:[
