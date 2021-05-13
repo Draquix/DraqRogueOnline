@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Draq Rogue Online</title>
+</head>
+<body>
+    <header>
+        <h1>Welcome To Draq Rogue Online</h1>
+    </header>
+    <main>
+        <form class="chat-form">
+            <label class="chat-label">
+                Enter a message:
+                <input type="text" class="chat-input">
+            </label>
+            <input type="submit" class="chat-submit" value="enter">
+        </form>
+        <div class="chat-dump"></div>
+
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

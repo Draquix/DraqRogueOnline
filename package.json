@@ -1,0 +1,33 @@
+{
+  "name": "draqrogueonline",
+  "version": "1.0.0",
+  "description": "A roguelike MMO with focus on gathering and crafting to support player driven economy",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Draquix/DraqRogueOnline.git"
+  },
+  "keywords": [
+    "Roguelike",
+    "MMO",
+    "grind",
+    "Draquix"
+  ],
+  "author": "Daniel Rogahn (Draquix)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Draquix/DraqRogueOnline/issues"
+  },
+  "homepage": "https://github.com/Draquix/DraqRogueOnline#readme",
+  "dependencies": {
+    "dotenv": "^9.0.2",
+    "express": "^4.17.1",
+    "http": "0.0.1-security",
+    "path": "^0.12.7",
+    "socket.io": "^4.1.1"
+  }
+}
