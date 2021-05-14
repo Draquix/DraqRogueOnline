@@ -153,23 +153,23 @@ socket.on('draw player', data => {
 document.onkeydown = function(event){
     console.log(event.keyCode);
     if(event.keyCode === 68)  //d
-        socket.emit('key press',{inputDir:'right', state:true});
+        socket.emit('key press',{inputDir:'right', state:true, id:localId});
     else if(event.keyCode === 83) //s
-        socket.emit('key press', {inputDir:'down', state:true});
+        socket.emit('key press', {inputDir:'down', state:true, id:localId});
     else if(event.keyCode === 65)  //a
-        socket.emit('key press', {inputDir:'left',state:true});
+        socket.emit('key press', {inputDir:'left',state:true, id:localId});
     else if(event.keyCode === 87) //w
-        socket.emit('key press', {inputDir:'up',state:true});
+        socket.emit('key press', {inputDir:'up',state:true, id:localId});
 }
 document.onkeyup = function(event){
     if(event.keyCode === 68)  //d
-        socket.emit('key press',{inputDir:'right', state:false});
+        socket.emit('key press',{inputDir:'right', state:false,id:localId});
     else if(event.keyCode === 83) //s
-        socket.emit('key press', {inputDir:'down', state:false});
+        socket.emit('key press', {inputDir:'down', state:false,id:localId});
     else if(event.keyCode === 65)  //a
-        socket.emit('key press', {inputDir:'left',state:false});
+        socket.emit('key press', {inputDir:'left',state:false,id:localId});
     else if(event.keyCode === 87) //w
-        socket.emit('key press', {inputDir:'up',state:false});
+        socket.emit('key press', {inputDir:'up',state:false,id:localId});
 }
 
 const map0 = {
