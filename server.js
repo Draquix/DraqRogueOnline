@@ -15,13 +15,16 @@ app.use(express.static(path.join(__dirname, '/static')));
 let SOCKET_LIST = {};
 let PLAYER_LIST = [];
 let MapBox = [];
+let LegendBox = [];
+
+
 
 
 io.on('connection', socket => {
     console.log('Some client connected...');
     socket.id = Math.random();
     SOCKET_LIST[socket.id] = socket;
-    socket.emit('handshaking',{id: socket.id,maps:MapBox});
+    socket.emit('handshaking',{id: socket.id},MapBox,LegendBox);
     socket.on('login', user => {
         console.log('player login: ', user);
         let name = user.name;
@@ -98,7 +101,30 @@ this.updatePos = function(){
 console.log('server dependencies loaded...');
 
 const port = process.env.PORT || 3000;
+const map0 = [
+        ['#','#','#','#','#','#','#','#','#','#','#','#','#'],
+        ['#','.',',','#','=','#','=','#',',','.','.',',','#'],
+        ['#','.',',','.','.','*','.','.',',','.','.',',','#'],
+        ['#','.','.','.','.','.','.','.','.','.','.','.','#'],
+        ['#','.','.','P','.','.','.','.','.','#','1','#','#'],
+        ['#',',','.','.',',','.','.',',','.','#'],
+        ['#',',','.','.',',','.','.',',','.','#'],
+        ['#',',','.','.',',','.','P',',','.','#','#'],
+        ['#',',','.','.',',','.','%',',','.','&','#'],
+        ['#',',','.','.',',','.','.',',','.','*','#'],
+        ['#','#','#','#','#','#','#','#','#','#','#']
+];
+const legend0 ={
+    NPC: ['red','green'],
+    Craft: ['dark red','grey'],
+    Wall: 'dark grey',
+    floorDots: 'grey',
+    floorSpots: 'blue',
+};
+MapBox.push(map0);
+LegendBox.push(legend0);
 
 server.listen(port, () => {
     console.log('server listening on port: ', port);
 });
+console.log('server script fully loaded');

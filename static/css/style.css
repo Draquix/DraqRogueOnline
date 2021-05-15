@@ -20,5 +20,6 @@ header{
 }
 canvas {
     float:left;
-    border: 2px solid black;
+    border: 2px solid rgb(85, 7, 7);
+    background-color: black;
 }
