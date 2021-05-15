@@ -34,6 +34,7 @@ let character={};
 function draw(){
     let canvas = document.getElementById('game');
     let ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,360,360)
     let tile = 12;
     let xpos = 1, ypos = 1;
     let countP = 0;
@@ -134,8 +135,7 @@ socket.on('handshaking',data => {
 });
 socket.on('player create',data => {
     playerUp(data.pc,data.id);
-
-})
+});
 socket.on('draw player', data => {
     draw();
     let canvas = document.getElementById('game');
@@ -151,7 +151,6 @@ socket.on('draw player', data => {
     }
 });
 document.onkeydown = function(event){
-    console.log(event.keyCode);
     if(event.keyCode === 68)  //d
         socket.emit('key press',{inputDir:'right', state:true, id:localId});
     else if(event.keyCode === 83) //s
@@ -161,19 +160,10 @@ document.onkeydown = function(event){
     else if(event.keyCode === 87) //w
         socket.emit('key press', {inputDir:'up',state:true, id:localId});
 }
-document.onkeyup = function(event){
-    if(event.keyCode === 68)  //d
-        socket.emit('key press',{inputDir:'right', state:false,id:localId});
-    else if(event.keyCode === 83) //s
-        socket.emit('key press', {inputDir:'down', state:false,id:localId});
-    else if(event.keyCode === 65)  //a
-        socket.emit('key press', {inputDir:'left',state:false,id:localId});
-    else if(event.keyCode === 87) //w
-        socket.emit('key press', {inputDir:'up',state:false,id:localId});
-}
+
 
 const map0 = {
-    map:[
+    map0:[
         ['#','#','#','#','#','#','#','#','#','#','#','#','#'],
         ['#','.',',','.','.',',','.','.',',','.','.',',','#'],
         ['#','.',',','.','.',',','.','.',',','.','.',',','#'],

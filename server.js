@@ -33,16 +33,14 @@ io.on('connection', socket => {
     });
     socket.on('key press', data => {
         player = PLAYER_LIST[socket.id];
-        console.log(data);
-        console.log(player);
         if(data.inputDir==='left')
-            player.pressLeft = data.state;
-        if(data.inputDir==='left')
-            player.pressLeft = data.state;
-        if(data.inputDir==='left')
-            player.pressLeft = data.state;
-        if(data.inputDir==='left')
-            player.pressLeft = data.state;  
+            player.xpos--;
+        if(data.inputDir==='right')
+            player.xpos++;
+        if(data.inputDir==='up')
+            player.ypos--;
+        if (data.inputDir==='down')
+            player.ypos++;  
     });
     socket.on('chat', message => {
         console.log('message from client: ', message);
@@ -67,7 +65,7 @@ setInterval(function() {
     if ((timer%50)===0){
         console.log(timer, 'ticks elapsed');
     }
-}, 256);
+}, 100);
 
 function Player (name, passphrase, id){
     this.username = name;
@@ -88,11 +86,11 @@ function Player (name, passphrase, id){
 this.updatePos = function(){
     if(this.pressRight===true)
         this.xpos++;
-    else if(this.pressLeft===true)
+    if(this.pressLeft===true)
         this.xpos--;
-    else if(this.pressUp===true)
+    if(this.pressUp===true)
         this.ypos--;
-    else if(this.pressDown===true)
+    if(this.pressDown===true)
         this.ypos++;
     }
 }
