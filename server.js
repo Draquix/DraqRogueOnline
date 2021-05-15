@@ -36,14 +36,28 @@ io.on('connection', socket => {
     });
     socket.on('key press', data => {
         player = PLAYER_LIST[socket.id];
-        if(data.inputDir==='left')
-            player.xpos--;
-        if(data.inputDir==='right')
-            player.xpos++;
-        if(data.inputDir==='up')
-            player.ypos--;
-        if (data.inputDir==='down')
-            player.ypos++;  
+        if(data.inputDir==='left'){
+            let stepTile = MapBox[player.map][player.ypos+1][player.xpos-1];
+            player.tileTarget = stepTile;
+            if(stepTile==="."||stepTile===",")
+                player.xpos--;
+        }
+        if(data.inputDir==='right'){
+            let stepTile = MapBox[player.map][player.ypos+1][player.xpos+1];
+            player.tileTarget = stepTile;
+            if(stepTile==="."||stepTile===",")
+                player.xpos++;
+        }   
+        if(data.inputDir==='up'){
+            let stepTile = MapBox[player.map][player.ypos][player.xpos];
+            if(stepTile==="."||stepTile===",")
+                player.ypos--;
+        }
+        if (data.inputDir==='down'){
+            let stepTile = MapBox[player.map][player.ypos+2][player.xpos];
+            if(stepTile==="."||stepTile===",")
+                player.ypos++;
+        }
     });
     socket.on('chat', message => {
         console.log('message from client: ', message);
@@ -57,9 +71,11 @@ setInterval(function() {
                 let player = PLAYER_LIST[i];
                 player.updatePos();
                 pack.push({
+                    stats:player.stats,
                     xpos:player.xpos,
                     ypos:player.ypos,
-                    mapDex:player.map
+                    mapDex:player.map,
+                    tileTarget:player.tileTarget
                 });
                 let socket = SOCKET_LIST[i];
                 socket.emit('draw player',{pack, id: socket.id});
@@ -84,17 +100,31 @@ function Player (name, passphrase, id){
     this.pressLeft = false;
     this.pressUp = false;
     this.pressDown = false;
+    this.tileTarget = " ";
     console.log("player created by name of:" , this.name);
 
 this.updatePos = function(){
-    if(this.pressRight===true)
-        this.xpos++;
-    if(this.pressLeft===true)
-        this.xpos--;
-    if(this.pressUp===true)
-        this.ypos--;
-    if(this.pressDown===true)
-        this.ypos++;
+    if(this.pressRight===true){
+        let stepTile = MapBox[this.map][this.ypos+1][this.xpos+1];
+        this.tileTarget = stepTile;
+        if(stepTile==="."||stepTile===",")
+            this.xpos++;
+    }
+    if(this.pressLeft===true){
+    let stepTile = MapBox[this.map][this.ypos+1][this.xpos-1];
+        if(stepTile==="."||stepTile===",")
+            this.xpos--;
+    }
+    if(this.pressUp===true){
+        let stepTile = MapBox[this.map][this.ypos][this.xpos];
+        if(stepTile==="."||stepTile===",")
+            this.ypos--;
+    }
+    if(this.pressDown===true){
+        let stepTile = MapBox[this.map][this.ypos+2][this.xpos];
+        if(stepTile==="."||stepTile===",")
+            this.ypos++;
+    }
     }
 }
 
@@ -116,9 +146,10 @@ const map0 = [
 ];
 const legend0 ={
     NPC: ['red','green'],
-    Craft: ['dark red','grey'],
-    Wall: 'dark grey',
-    floorDots: 'grey',
+    Craft: ['red','light brown'],
+    CraftType: ['furnace','anvil'],
+    Wall: 'grey',
+    floorDots: 'gray',
     floorSpots: 'blue',
 };
 MapBox.push(map0);

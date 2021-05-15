@@ -57,9 +57,9 @@ function draw(){
                 ctx.fillStyle = legend.floorDots;
                 ctx.fillText('.',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
-            if (map[i][j]==="+"){
+            if (map[i][j]==="*"){
                 ctx.fillStyle = "yellow";
-                ctx.fillText('.',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+                ctx.fillText('*',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
             if (map[i][j]===","){
                 ctx.fillStyle = legend.floorSpots;
@@ -72,11 +72,11 @@ function draw(){
             }
             if (map[i][j]==="="){
                 ctx.fillStyle = legend.Craft[countC];
-                ctx.fillText('P',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+                ctx.fillText('=',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
                 countC++;
             }
             if (map[i][j]==="1"||map[i][j]==="2"){
-                ctx.fillStyle = "light brown";
+                ctx.fillStyle = "brown";
                 ctx.fillText('+', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
             if (map[i][j]==="&"){
@@ -100,7 +100,14 @@ function draw(){
                 ctx.fillText('&', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
         }
+    ctx.fillStyle = "white";
+    ctx.fillText(",",25*tile,29*tile);
+    ctx.fillText(character.xpos+1,24*tile,29*tile);
+    ctx.fillText(character.ypos,26*tile,29*tile);
+    ctx.fillStyle = "blue";
+    ctx.fillText(character.tileTarget,4*tile,29*tile);
     }
+    
 }
 
 function render(message, id) {
@@ -161,11 +168,16 @@ socket.on('draw player', data => {
     let tile =12;
     for(var i=0; i < data.pack.length; i++){
         ctx.font = "12pt Monospace";
-        ctx.fillStyle = "white";
         if (!(data.id===localId.id)){
+            ctx.fillStyle = "white";
+        } else {
             ctx.fillStyle = "yellow";
+            character.xpos = data.pack[i].xpos;
+            character.ypos = data.pack[i].ypos;
+            character.tileTarget = data.pack[i].tileTarget;
+            character.stats = data.pack[i].stats;
         }
-        ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile)
+        ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
     }
 });
 document.onkeydown = function(event){
