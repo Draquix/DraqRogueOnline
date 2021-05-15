@@ -31,6 +31,12 @@ const LegendBox = {
         return this.legends[legNum];
     }
 }
+const NPCBox = {
+    NPCs:[],
+    showNpc: function(npcNum){
+        return this.NPCs[npcNum];
+    }
+}
 login.addEventListener('submit', e => {
     e.preventDefault();
     socket.emit('login', {name: username.value, phrase: passphrase.value} );
@@ -71,9 +77,12 @@ function draw(){
                 countP++;
             }
             if (map[i][j]==="="){
-                ctx.fillStyle = legend.Craft[countC];
+                ctx.fillStyle = "red";
                 ctx.fillText('=',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
-                countC++;
+            }
+            if (map[i][j]==="-"){
+                ctx.fillStyle = "white";
+                ctx.fillText('=',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
             if (map[i][j]==="1"||map[i][j]==="2"){
                 ctx.fillStyle = "brown";
@@ -147,7 +156,10 @@ function playerUp(player, id) {
         }
     }
 }
-
+function converse(){
+    let NPC = NPCBox.showNpc(0);
+    console.log(NPC);
+}
 socket.on('chat', data => {
     console.log('chat emitted from server',data.message);
     render(data.message,data.id);
@@ -160,6 +172,9 @@ socket.on('handshaking',(data,maps,legends) => {
 });
 socket.on('player create',data => {
     playerUp(data.pc,data.id);
+});
+socket.on('NPC Bump', npc => {
+    console.log('NPC recieved :',npc);
 });
 socket.on('draw player', data => {
     draw();
@@ -176,6 +191,10 @@ socket.on('draw player', data => {
             character.ypos = data.pack[i].ypos;
             character.tileTarget = data.pack[i].tileTarget;
             character.stats = data.pack[i].stats;
+            if(data.pack[i].NPCFlag===true){
+                NPCBox.NPCs = data.pack[i].NPCBox;
+                converse();
+            }
         }
         ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
     }

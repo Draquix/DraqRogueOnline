@@ -16,7 +16,12 @@ let SOCKET_LIST = {};
 let PLAYER_LIST = [];
 let MapBox = [];
 let LegendBox = [];
-
+let NPCBox = {
+    NPCs:[],
+    showNPC:function(npcNum){
+        return this.NPCs[npcNum]
+    }
+};
 
 
 
@@ -37,26 +42,40 @@ io.on('connection', socket => {
     socket.on('key press', data => {
         player = PLAYER_LIST[socket.id];
         if(data.inputDir==='left'){
-            let stepTile = MapBox[player.map][player.ypos+1][player.xpos-1];
+            let stepTile = MapBox[player.map][player.ypos-1][player.xpos-1];
             player.tileTarget = stepTile;
-            if(stepTile==="."||stepTile===",")
+            if(stepTile==="."||stepTile===","){
                 player.xpos--;
+            } else {
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+            }
         }
         if(data.inputDir==='right'){
-            let stepTile = MapBox[player.map][player.ypos+1][player.xpos+1];
+            let stepTile = MapBox[player.map][player.ypos-1][player.xpos+1];
             player.tileTarget = stepTile;
-            if(stepTile==="."||stepTile===",")
+            if(stepTile==="."||stepTile===","){
                 player.xpos++;
+            } else {
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+            }
         }   
         if(data.inputDir==='up'){
-            let stepTile = MapBox[player.map][player.ypos][player.xpos];
-            if(stepTile==="."||stepTile===",")
+            let stepTile = MapBox[player.map][player.ypos-2][player.xpos];
+            player.tileTarget = stepTile;
+            if(stepTile==="."||stepTile===","){
                 player.ypos--;
+            } else {
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+            }
         }
         if (data.inputDir==='down'){
-            let stepTile = MapBox[player.map][player.ypos+2][player.xpos];
-            if(stepTile==="."||stepTile===",")
+            let stepTile = MapBox[player.map][player.ypos][player.xpos];
+            player.tileTarget = stepTile;
+            if(stepTile==="."||stepTile===","){
                 player.ypos++;
+            } else {
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
+            }
         }
     });
     socket.on('chat', message => {
@@ -69,7 +88,6 @@ setInterval(function() {
             let pack = [];
             for (var i in PLAYER_LIST){
                 let player = PLAYER_LIST[i];
-                player.updatePos();
                 pack.push({
                     stats:player.stats,
                     xpos:player.xpos,
@@ -79,6 +97,16 @@ setInterval(function() {
                 });
                 let socket = SOCKET_LIST[i];
                 socket.emit('draw player',{pack, id: socket.id});
+            }
+            let BumpPack = [];
+            for (var i in PLAYER_LIST){
+                let player = PLAYER_LIST[i]
+                if(player.BumpFlag===true){
+                    NPCpack.push(player.BumpPack);
+                    player.BumpFlag = false;
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('NPC Bump',{BumpPack, id: socket.id});
+                }
             }
     timer++;
     if ((timer%50)===0){
@@ -101,39 +129,30 @@ function Player (name, passphrase, id){
     this.pressUp = false;
     this.pressDown = false;
     this.tileTarget = " ";
+    this.BumpPack = {};
+    this.BumpFlag = false;
     console.log("player created by name of:" , this.name);
 
-this.updatePos = function(){
-    if(this.pressRight===true){
-        let stepTile = MapBox[this.map][this.ypos+1][this.xpos+1];
-        this.tileTarget = stepTile;
-        if(stepTile==="."||stepTile===",")
-            this.xpos++;
-    }
-    if(this.pressLeft===true){
-    let stepTile = MapBox[this.map][this.ypos+1][this.xpos-1];
-        if(stepTile==="."||stepTile===",")
-            this.xpos--;
-    }
-    if(this.pressUp===true){
-        let stepTile = MapBox[this.map][this.ypos][this.xpos];
-        if(stepTile==="."||stepTile===",")
-            this.ypos--;
-    }
-    if(this.pressDown===true){
-        let stepTile = MapBox[this.map][this.ypos+2][this.xpos];
-        if(stepTile==="."||stepTile===",")
-            this.ypos++;
-    }
-    }
 }
 
 console.log('server dependencies loaded...');
+function collision(tile,map,x,y,id){
+    if(tile==="P"){
+        console.log("gotta P");
+        for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
+            console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
+            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1)){
+                console.log('got a coordinate hit.');
+                return NPCBox.showNPC(i);
+            }
+        }
 
+    }
+}
 const port = process.env.PORT || 3000;
 const map0 = [
         ['#','#','#','#','#','#','#','#','#','#','#','#','#'],
-        ['#','.',',','#','=','#','=','#',',','.','.',',','#'],
+        ['#','.',',','#','=','#','-','#',',','.','.',',','#'],
         ['#','.',',','.','.','*','.','.',',','.','.',',','#'],
         ['#','.','.','.','.','.','.','.','.','.','.','.','#'],
         ['#','.','.','P','.','.','.','.','.','#','1','#','#'],
@@ -146,15 +165,37 @@ const map0 = [
 ];
 const legend0 ={
     NPC: ['red','green'],
-    Craft: ['red','light brown'],
-    CraftType: ['furnace','anvil'],
+    coordNPC: [[4,5],[7,8]],
+    indexNPC:[0,1],
     Wall: 'grey',
     floorDots: 'gray',
     floorSpots: 'blue',
 };
+
 MapBox.push(map0);
 LegendBox.push(legend0);
-
+const NPC0 = {
+    name: "Balaster",
+    conversations: [
+        {message:"Ahh, welcome newcomer to DraqRogue!",choice:["Where am I?","What should I do?"],answerI:[1,2],end:false},
+        {message:"These are the starting barracks... people begin here to feed the machine.",choice:["...the machine?"],answerI:[3],end:false},
+        {message:"In this room is a furnace and an anvil. If you had the materials, you could smelt and forge things.",choice:["Where do I get materials?","Is there anything else to do?"],answer:[4,5],end:false},
+        {message:"Draq wages constant war on other realms, so he needs to train people to work and fight to grind them down!",choice:["Who's the wizard in green?","What should I do?"],answerI:[6,2],end:false},
+        {message:"Go out the door to the work yard and train on menial tasks so you become a good cog.",end:true},
+        {message:"Aside from gathering and crafting, we do need good soldiers... you could train at combat. Also head out the door for that",end:true},
+        {message:"Oh, that's wizard Gillar. He can teach you about the inventory storage system.",end:true}
+    ],
+    questBool:false
+}
+const NPC1 = {
+    name: "Gillar",
+    conversations:[
+        {message:"Confound it! I can never understand how this singularity point allows you to take and leave things at will with such capacity!",end:true}
+    ],
+    questBool:true
+}
+NPCBox.push(NPC0);
+NPCBox.push(NPC1);
 server.listen(port, () => {
     console.log('server listening on port: ', port);
 });
