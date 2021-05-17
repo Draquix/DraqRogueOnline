@@ -2,7 +2,7 @@
  color:blue;
  text-indent: 20%;   
 }
-#screen{
+.screen{
     display: inline-block;
 }
 header{
@@ -18,7 +18,18 @@ header{
     float:right;
     border:2px solid black;
 }
+#interactions{
+    width: 300px;
+    height:160px;
+    border:2px solid black;
+}
+#char-display{
+    width:300px;
+    height:198px;
+    border:2px solid black;
+}
 canvas {
     float:left;
-    border: 2px solid black;
+    border: 2px solid rgb(85, 7, 7);
+    background-color: black;
 }

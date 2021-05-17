@@ -25,6 +25,18 @@ const MapBox = {
         return this.maps[mapNum];
     }
 }
+const LegendBox = {
+    legends:[],
+    showLegend: function(legNum){
+        return this.legends[legNum];
+    }
+}
+const NPCBox = {
+    NPCs:[],
+    showNpc: function(npcNum){
+        return this.NPCs[npcNum];
+    }
+}
 login.addEventListener('submit', e => {
     e.preventDefault();
     socket.emit('login', {name: username.value, phrase: passphrase.value} );
@@ -34,56 +46,77 @@ let character={};
 function draw(){
     let canvas = document.getElementById('game');
     let ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,360,360)
     let tile = 12;
     let xpos = 1, ypos = 1;
-    let countP = 0;
-    let mapObj = MapBox.showMap(character.map);
+    let countP = 0, countC = 0;
+    let map = MapBox.maps[character.map];
+    let legend = LegendBox.legends[character.map]
     ctx.font = '12px Helvetica';
-    for (let i = 0; i < mapObj.map.length; i++){
-        for (let j = 0; j < mapObj.map[i].length; j++){
-            if (mapObj.map[i][j]==="#"){
-                ctx.fillStyle = mapObj.Wall;
+    for (let i = 0; i < map.length; i++){
+        for (let j = 0; j < map[i].length; j++){
+            if (map[i][j]==="#"){
+                ctx.fillStyle = legend.Wall;
                 ctx.fillText('#',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="."){
-                ctx.fillStyle = mapObj.floorDots;
+            if (map[i][j]==="."){
+                ctx.fillStyle = legend.floorDots;
                 ctx.fillText('.',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]===","){
-                ctx.fillStyle = mapObj.floorSpots;
+            if (map[i][j]==="*"){
+                ctx.fillStyle = "yellow";
+                ctx.fillText('*',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+            }
+            if (map[i][j]===","){
+                ctx.fillStyle = legend.floorSpots;
                 ctx.fillText('.',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="P"){
-                ctx.fillStyle = mapObj.NPC[countP];
+            if (map[i][j]==="P"){
+                ctx.fillStyle = legend.NPC[countP];
                 ctx.fillText('P',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
                 countP++;
             }
-            if (mapObj.map[i][j]==="+"){
-                ctx.fillStyle = "light brown";
+            if (map[i][j]==="="){
+                ctx.fillStyle = "red";
+                ctx.fillText('=',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+            }
+            if (map[i][j]==="-"){
+                ctx.fillStyle = "white";
+                ctx.fillText('=',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+            }
+            if (map[i][j]==="1"||map[i][j]==="2"){
+                ctx.fillStyle = "brown";
                 ctx.fillText('+', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="&"){
-                ctx.fillStyle = "brown";
+            if (map[i][j]==="&"){
+                ctx.fillStyle = "red";
                 ctx.fillText('&', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="T"){
+            if (map[i][j]==="T"){
                 ctx.fillStyle = "green";
                 ctx.fillText('&', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="$"){
+            if (map[i][j]==="$"){
                 ctx.fillStyle = "yellow";
                 ctx.fillText('$', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="%"){
-                ctx.fillStyle = "black";
+            if (map[i][j]==="%"){
+                ctx.fillStyle = "brown";
                 ctx.fillText('%', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
-            if (mapObj.map[i][j]==="Q"){
+            if (map[i][j]==="Q"){
                 ctx.fillStyle = "dark grey";
                 ctx.fillText('&', (xpos*j*tile)+1,(ypos*(i+1)*tile)+1);
             }
         }
+    ctx.fillStyle = "white";
+    ctx.fillText(",",25*tile,29*tile);
+    ctx.fillText(character.xpos+1,24*tile,29*tile);
+    ctx.fillText(character.ypos,26*tile,29*tile);
+    ctx.fillStyle = "blue";
+    ctx.fillText(character.tileTarget,4*tile,29*tile);
     }
+    
 }
 
 function render(message, id) {
@@ -123,19 +156,26 @@ function playerUp(player, id) {
         }
     }
 }
-
+function converse(){
+    let NPC = NPCBox.showNpc(0);
+    console.log(NPC);
+}
 socket.on('chat', data => {
     console.log('chat emitted from server',data.message);
     render(data.message,data.id);
 });
-socket.on('handshaking',data => {
+socket.on('handshaking',(data,maps,legends) => {
     localId.id = data.id;
+    MapBox.maps = maps;
+    LegendBox.legends = legends;
     console.log('handed up id: ', localId.id);
 });
 socket.on('player create',data => {
     playerUp(data.pc,data.id);
-
-})
+});
+socket.on('NPC Bump', npc => {
+    console.log('NPC recieved :',npc);
+});
 socket.on('draw player', data => {
     draw();
     let canvas = document.getElementById('game');
@@ -143,71 +183,70 @@ socket.on('draw player', data => {
     let tile =12;
     for(var i=0; i < data.pack.length; i++){
         ctx.font = "12pt Monospace";
-        ctx.fillStyle = "black";
         if (!(data.id===localId.id)){
-            ctx.fillStyle = "grey";
+            ctx.fillStyle = "white";
+        } else {
+            ctx.fillStyle = "yellow";
+            character.xpos = data.pack[i].xpos;
+            character.ypos = data.pack[i].ypos;
+            character.tileTarget = data.pack[i].tileTarget;
+            character.stats = data.pack[i].stats;
+            if(data.pack[i].NPCFlag===true){
+                NPCBox.NPCs = data.pack[i].NPCBox;
+                converse();
+            }
         }
-        ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile)
+        ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
     }
 });
 document.onkeydown = function(event){
-    console.log(event.keyCode);
     if(event.keyCode === 68)  //d
-        socket.emit('key press',{inputDir:'right', state:true});
+        socket.emit('key press',{inputDir:'right', state:true, id:localId});
     else if(event.keyCode === 83) //s
-        socket.emit('key press', {inputDir:'down', state:true});
+        socket.emit('key press', {inputDir:'down', state:true, id:localId});
     else if(event.keyCode === 65)  //a
-        socket.emit('key press', {inputDir:'left',state:true});
+        socket.emit('key press', {inputDir:'left',state:true, id:localId});
     else if(event.keyCode === 87) //w
-        socket.emit('key press', {inputDir:'up',state:true});
-}
-document.onkeyup = function(event){
-    if(event.keyCode === 68)  //d
-        socket.emit('key press',{inputDir:'right', state:false});
-    else if(event.keyCode === 83) //s
-        socket.emit('key press', {inputDir:'down', state:false});
-    else if(event.keyCode === 65)  //a
-        socket.emit('key press', {inputDir:'left',state:false});
-    else if(event.keyCode === 87) //w
-        socket.emit('key press', {inputDir:'up',state:false});
+        socket.emit('key press', {inputDir:'up',state:true, id:localId});
 }
 
-const map0 = {
-    map:[
-        ['#','#','#','#','#','#','#','#','#','#','#','#','#'],
-        ['#','.',',','.','.',',','.','.',',','.','.',',','#'],
-        ['#','.',',','.','.',',','.','.',',','.','.',',','#'],
-        ['#','.','.','.','.','.','.','.','.','.','.','.','#'],
-        ['#','.','.','P','.','.','.','.','.','#','+','#','#'],
-        ['#',',','.','.',',','.','P',',','.','#'],
-        ['#',',','.','.',',','.','%',',','.','#'],
-        ['#','#','#','#','#','#','#','#','#','#'],
-        ],
-    NPC: ["red","green"],
-    Wall: 'brown',
-    floorDots: 'grey',
-    floorSpots: 'blue'
-};
-const map1 = {
-    map:[
-        ['#','#','#','#','#','#','_','_','_','_','_','_','#','#','#','#','#','#','#','#','#'],
-        ['#','.','.','.','.','#','#','#','#','#','#','#','#','.','.','.','.','&','P','T','#'],
-        ['#','.',',','.','.','#','.','.',',','.','.','Q','#','.','.',',','T','.',',','.','#'],
-        ['#','.',',','.','.','#','.','.',',','.','.','P','#','.','.',',','.','.',',','.','#'],
-        ['#','.',',','.','.','#','.','.',',','.','%','#','#','.','.',',','.','.',',','.','#'],
-        ['#','.',',','.','.','.','.','.','#','#','#','#','.','.',',',',',',',',','T',',','+'],
-        ['#','.',',','.','.','.','.','.','.',',','.','.','.','.','.','.',',','.','.','.','#'],
-        ['#','.',',','.','.','.','.','.','.',',','.','.','.','.',',','.',',','.','.','.','#'],
-        ['#','.',',','.','.','.','.','.','.',',','.','.','.','$','.','.',',','.','.','.','#'],
-        ['#','$','P','.','.','.','.','.','.',',','.','.','.','P','.','.',',','.',',','.','#'],
-        ['#','.',',','.','.','.','.','.','.',',','.','.','.','.','.','.',',','.','#','#','#','#','#','#','#','#','#'],
-        ['#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#'],
-    ],
-    NPC: ["light green","black","dark blue","purple"],
-    Wall: 'dark green',
-    floorDots: 'lime green',
-    floorSpots: 'dark brown'
-};
-MapBox.maps.push(map0);
-MapBox.maps.push(map1);
+
+// const map0 = {
+//     map0:[
+//         ['#','#','#','#','#','#','#','#','#','#','#','#','#'],
+//         ['#','.',',','.','.',',','.','.',',','.','.',',','#'],
+//         ['#','.',',','.','.',',','.','.',',','.','.',',','#'],
+//         ['#','.','.','.','.','.','.','.','.','.','.','.','#'],
+//         ['#','.','.','P','.','.','.','.','.','#','+','#','#'],
+//         ['#',',','.','.',',','.','P',',','.','#'],
+//         ['#',',','.','.',',','.','%',',','.','#'],
+//         ['#','#','#','#','#','#','#','#','#','#'],
+//         ],
+//     NPC: ["red","green"],
+//     Wall: 'brown',
+//     floorDots: 'grey',
+//     floorSpots: 'blue'
+// };
+// const map1 = {
+//     map:[
+//         ['#','#','#','#','#','#','_','_','_','_','_','_','#','#','#','#','#','#','#','#','#'],
+//         ['#','.','.','.','.','#','#','#','#','#','#','#','#','.','.','.','.','&','P','T','#'],
+//         ['#','.',',','.','.','#','.','.',',','.','.','Q','#','.','.',',','T','.',',','.','#'],
+//         ['#','.',',','.','.','#','.','.',',','.','.','P','#','.','.',',','.','.',',','.','#'],
+//         ['#','.',',','.','.','#','.','.',',','.','%','#','#','.','.',',','.','.',',','.','#'],
+//         ['#','.',',','.','.','.','.','.','#','#','#','#','.','.',',',',',',',',','T',',','+'],
+//         ['#','.',',','.','.','.','.','.','.',',','.','.','.','.','.','.',',','.','.','.','#'],
+//         ['#','.',',','.','.','.','.','.','.',',','.','.','.','.',',','.',',','.','.','.','#'],
+//         ['#','.',',','.','.','.','.','.','.',',','.','.','.','$','.','.',',','.','.','.','#'],
+//         ['#','$','P','.','.','.','.','.','.',',','.','.','.','P','.','.',',','.',',','.','#'],
+//         ['#','.',',','.','.','.','.','.','.',',','.','.','.','.','.','.',',','.','#','#','#','#','#','#','#','#','#'],
+//         ['#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#','#'],
+//     ],
+//     NPC: ["light green","black","dark blue","purple"],
+//     Wall: 'dark green',
+//     floorDots: 'lime green',
+//     floorSpots: 'dark brown'
+// };
+// MapBox.maps.push(map0);
+// MapBox.maps.push(map1);
 console.log('end of the code reached');
