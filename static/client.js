@@ -144,7 +144,7 @@ function playerUp(player, id) {
         displayStat.innerText = 'STR: '+ player.stats.str + ' | DEX: ' + player.stats.dex + ' | DEF ' + player.stats.def;
         stats.appendChild(displayStat);    
         let scroll = document.createElement('li');
-        scroll.innerText = "Welcome, logged in as " + character.name + ".";
+        scroll.innerText = "Welcome, logged in as " + character.username + ".";
         scrolltips.appendChild(scroll);
         if(character.map===0){
             let scroll = document.createElement('li');
@@ -156,7 +156,6 @@ function playerUp(player, id) {
         }
     }
 }
-let converseFlow = 0;
 function converse(npc,flow){
     let panel = document.querySelector('#interactions');
     let name = document.createElement('p');
@@ -167,10 +166,11 @@ function converse(npc,flow){
     panel.appendChild(message);
     for(var i = 0; i < npc.conversations[flow].choice.length; i++){
         let btn = document.createElement('button');
+        let choiceI = npc.conversations[flow].answerI[i];
         btn.innerHTML = npc.conversations[flow].choice[i];
         btn.onclick = function(){
-            consverseFlow = npc.conversations[flow].answerI[i];
-            converse(npc,npc.conversations[flow].answerI[i]);
+            console.log(choiceI);
+            converse(npc,choiceI);
         }
         panel.appendChild(btn);
     }
