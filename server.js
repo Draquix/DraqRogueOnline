@@ -3,15 +3,23 @@
 // Customizations and modifications into DraqRogueOnline done by Daniel Rogahn
 // aka Draquix 05/12/2021
 
+
+//This portion loads the modules that create a basic server that accepts client connections and
+//socket.io to send game data back and forth as a multiplayer game. The modules do most of that
+//work for me... it's just the game logic and content that I design.
 require('dotenv').config();
 const express = require('express');
 const app = express();
 const server = require('http').createServer(app);
 const path = require('path');
 const io = require('socket.io')(server);
+const port = process.env.PORT || 3000;
+
 
 app.use(express.static(path.join(__dirname, '/static')));
 
+//GLOBAL VARIABLES - these are mostly containers so allow functions to manipulate objects at a
+//local level and then put back in the container to reflect changes on a global scope.
 let SOCKET_LIST = {};
 let PLAYER_LIST = [];
 let MapBox = [];
@@ -23,13 +31,19 @@ let NPCBox = {
     }
 };
 
-
-
+//This portion runs on a client connecting to a socket as an input/output handler to receive 
+//data from client interaction such as logging in, or keypresses, or changes to the player's
+//character such as gaining money, losing health, or winning a battle.
+//It also handles the very simple chat feature.
 io.on('connection', socket => {
+    //on connect it assigns a random id to the socket and does a handshake with the client to
+    //sync up player data.
     console.log('Some client connected...');
     socket.id = Math.random();
     SOCKET_LIST[socket.id] = socket;
     socket.emit('handshaking',{id: socket.id},MapBox,LegendBox);
+    //when a user logs in, a player is created on the server and a copy of it is sent to
+    //the client for display and and local processes upon it over game events.
     socket.on('login', user => {
         console.log('player login: ', user);
         let name = user.name;
@@ -39,6 +53,12 @@ io.on('connection', socket => {
         console.log(PLAYER_LIST);
         socket.emit('player create',{pc:player,id: socket.id});
     });
+    //When the client emits that a key has been pressed, it checks for what the direction of movement
+    //is and then the server locally calls functions that determine whether the player is to move
+    //or if is colliding with another game element indicating an interaction to trigger and prepare
+    //the data the client needs to converse with an NPC, or use the storage chest, or cook something
+    //at the fire, or begin working at the anvil... and puts the object retured into an array on
+    //the player object that is a container for interaction data to be emmitted on next tick
     socket.on('key press', data => {
         player = PLAYER_LIST[socket.id];
         if(data.inputDir==='left'){
@@ -47,8 +67,8 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.xpos--;
             } else {
+                player.BumpFlag = flagChecker(stepTile);
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
-                player.BumpFlag = true;
             }
         }
         if(data.inputDir==='right'){
@@ -57,8 +77,8 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.xpos++;
             } else {
+                player.BumpFlag = flagChecker(stepTile);
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
-                player.BumpFlag =true;
             }
         }   
         if(data.inputDir==='up'){
@@ -67,8 +87,8 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.ypos--;
             } else {
+                player.BumpFlag = flagChecker(stepTile);
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
-                player.BumpFlag = true;
             }
         }
         if (data.inputDir==='down'){
@@ -77,19 +97,30 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.ypos++;
             } else {
+                player.BumpFlag = flagChecker(stepTile);
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
-                player.BumpFlag = true;
             }
         }
     });
+    //this recieves input data from on a client's form and emits the message to all clients
+    //connected to have a live chat system.
     socket.on('chat', message => {
         console.log('message from client: ', message);
         io.emit('chat', {message, id: socket.id});
     });
 });
+//This is the runtime engine. It runs every 100ms (or would if the system could do it) and has a
+//timer variable to count the ticks from when the last time the server booted up. It checks 
+//against certain flags to have distinct socket.emits for different types of interactions so both
+//the server and the client know what the player is doing and what it's last action led it to 
+//encounter. It also transmits player's positions for all the players logged in at one time, so 
+//the multiplayer presence can be maintained.
+
 let timer = 0;
 setInterval(function() {
             let pack = [];
+            //this loop sends updated player data for each connection to every client to track
+            //movement in multiplayer and show interactions
             for (var i in PLAYER_LIST){
                 let player = PLAYER_LIST[i];
                 pack.push({
@@ -102,22 +133,76 @@ setInterval(function() {
                 let socket = SOCKET_LIST[i];
                 socket.emit('draw player',{pack, id: socket.id});
             }
+            //this loop sends data about a collision if a player has triggered an interaction
+            //with some game element so the client can handle display and local processing of
+            //success/fail chances in harvesting or combat. This is to take some of the workload
+            //off the server as to support more connections without latency.
             let BumpPack = [];
             for (var i in PLAYER_LIST){
                 let player = PLAYER_LIST[i]
-                if(player.BumpFlag===true){
+                //to modularize the client, the data emitted for different interactions is
+                //seperated by type. Later this will help with concurrent interactions like
+                //being hit while mining.
+                if(player.BumpFlag==='NPC Bump'){
                     BumpPack.push(player.BumpPack);
-                    player.BumpFlag = false;
+                    player.BumpFlag = '';
                     let socket = SOCKET_LIST[i];
                     socket.emit('NPC Bump',{BumpPack, id: socket.id});
                 }
+                if(player.BumpFlag==='Chest Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('Chest Bump',{BumpPack, id: socket.id});
+                }
+                if(player.BumpFlag==='Wall Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('Wall Bump',{BumpPack, id: socket.id});
+                }
+                if(player.BumpFlag==='Cookfire Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('Cookfire Bump',{BumpPack, id: socket.id});
+                }
+                if(player.BumpFlag==='POI Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('POI Bump',{BumpPack, id: socket.id});
+                }
+                if(player.BumpFlag==='Door Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('Door Bump',{BumpPack, id: socket.id});
+                }
+                if(player.BumpFlag==='Forge Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('Forge Bump',{BumpPack, id: socket.id});
+                }
+                if(player.BumpFlag==='Anvil Bump'){
+                    BumpPack.push(player.BumpPack);
+                    player.BumpFlag = '';
+                    let socket = SOCKET_LIST[i];
+                    socket.emit('Anvil Bump',{BumpPack, id: socket.id});
+                }
             }
+            
+    //The timer counts ticks and logs every 50 ticks just to have a measure of speed and time
+    //the server has been running and processing.
     timer++;
     if ((timer%50)===0){
         console.log(timer, 'ticks elapsed');
     }
 }, 100);
-
+// This is the player object constructor function. I try to keep as much local as possible so
+// as not to hack the client and jump to level 10 instantly.
+// --i do realize this means more attempts to hack the server instead, and i'm not looking forward to it.
 function Player (name, passphrase, id){
     this.username = name;
     this.passphrase = passphrase;
@@ -140,8 +225,34 @@ function Player (name, passphrase, id){
 }
 
 console.log('server dependencies loaded...');
+
+
+//Collision Handling -- This just returns a value to set the player's flag that will alert
+//the runtime engine what type of data it's sending.
+function flagChecker(tile){
+    if(tile==="P")
+        return 'NPC Bump';
+    if(tile==="#")
+        return 'Wall Bump';
+    if(tile==="%")
+        return 'Chest Bump';
+    if(tile==="&")
+        return 'Cookfire Bump';
+    if(tile==="*")
+        return 'POI Bump';
+    if(tile==="0"||tile==="1"||tile==="2"||tile==="3")
+        return 'Door Bump';
+    if(tile==="=")
+        return 'Forge Bump';
+    if(tile==="-")
+        return 'Anvil Bump';
+}
+//Collision Handling -- Checks the tile that the player has encountered and determines what unique map
+//element it is that the player is interacting with using the player's x,y coordinates and calls
+//the appropriate function to return the data packet that handles that element's interactions.
 function collision(tile,map,x,y,id){
-    if(tile==="P"){
+    //NPC collision handler
+    if(tile==="P"){   
         console.log("gotta P");
         for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
             console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
@@ -150,10 +261,22 @@ function collision(tile,map,x,y,id){
                 return NPCBox.showNPC(i);
             }
         }
-
+    }
+    //Chest collision handler
+    if(tile==="%"){
+        console.log("%");
+        for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
+            console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
+            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[mqp].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
+                console.log('got a coordinate hit.');
+                return OpenChest();
+            }
+        }
     }
 }
-const port = process.env.PORT || 3000;
+// ***GAME CONTENT DATA BELOW***
+
+//MAPS: an array of characters define the map's layout. 
 const map0 = [
         ['#','#','#','#','#','#','#','#','#','#','#','#','#'],
         ['#','.',',','#','=','#','-','#',',','.','.',',','#'],
@@ -167,6 +290,9 @@ const map0 = [
         ['#',',','.','.',',','.','.',',','.','*','#'],
         ['#','#','#','#','#','#','#','#','#','#','#']
 ];
+//LEGENDS: each map has a corresponding legend to work out unique interactions, so as to differentiate
+// between the P that is one NPC and the P that is another, as well as monster data, and the reference
+// of what map a door goes to.  There is also some color differentiation being used for flavor.
 const legend0 ={
     NPC: ['red','green'],
     coordNPC: [[4,5],[7,8]],
@@ -176,8 +302,8 @@ const legend0 ={
     floorSpots: 'blue',
 };
 
-MapBox.push(map0);
-LegendBox.push(legend0);
+//NPCs: NPC characters are represented as having a name, and a conversation tree, potentially quests and
+//items for trade or sale.
 const NPC0 = {
     name: "Balaster",
     conversations: [
@@ -198,8 +324,17 @@ const NPC1 = {
     ],
     questBool:true
 }
+//Game data is pushed to Global Variables that were established as containers to keep the game world
+//static as the players interact with it and change their own unique experience.
+MapBox.push(map0);
+LegendBox.push(legend0);
 NPCBox.NPCs.push(NPC0);
 NPCBox.NPCs.push(NPC1);
+
+
+
+
+//With all the files loaded, the below statement causes the server to boot up and listen for client connections.
 server.listen(port, () => {
     console.log('server listening on port: ', port);
 });
