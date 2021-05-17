@@ -159,6 +159,8 @@ function playerUp(player, id) {
 function converse(npc,flow){
     let panel = document.querySelector('#interactions');
     let name = document.createElement('p');
+    // let oldButts = document.querySelector('.convo-btn');
+    // console.log(oldButts);
     name.innerText = npc.name;
     panel.appendChild(name);
     let message = document.createElement('p');
@@ -168,6 +170,7 @@ function converse(npc,flow){
         let btn = document.createElement('button');
         let choiceI = npc.conversations[flow].answerI[i];
         btn.innerHTML = npc.conversations[flow].choice[i];
+        btn.classList.add('convo-btn');
         btn.onclick = function(){
             console.log(choiceI);
             converse(npc,choiceI);
