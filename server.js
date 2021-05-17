@@ -47,7 +47,8 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.xpos--;
             } else {
-                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
+                player.BumpFlag = true;
             }
         }
         if(data.inputDir==='right'){
@@ -56,7 +57,8 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.xpos++;
             } else {
-                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
+                player.BumpFlag = true;
             }
         }   
         if(data.inputDir==='up'){
@@ -65,7 +67,8 @@ io.on('connection', socket => {
             if(stepTile==="."||stepTile===","){
                 player.ypos--;
             } else {
-                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+                player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
+                player.BumpFlag = true;
             }
         }
         if (data.inputDir==='down'){
@@ -75,6 +78,7 @@ io.on('connection', socket => {
                 player.ypos++;
             } else {
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
+                player.BumpFlag = true;
             }
         }
     });
@@ -102,10 +106,10 @@ setInterval(function() {
             for (var i in PLAYER_LIST){
                 let player = PLAYER_LIST[i]
                 if(player.BumpFlag===true){
-                    NPCpack.push(player.BumpPack);
+                    BumpPack.push(player.BumpPack);
                     player.BumpFlag = false;
                     let socket = SOCKET_LIST[i];
-                    socket.emit('NPC Bump',{BumpPack, id: socket.id});
+                    socket.emit('Bump Pack',{BumpPack, id: socket.id});
                 }
             }
     timer++;
@@ -179,7 +183,7 @@ const NPC0 = {
     conversations: [
         {message:"Ahh, welcome newcomer to DraqRogue!",choice:["Where am I?","What should I do?"],answerI:[1,2],end:false},
         {message:"These are the starting barracks... people begin here to feed the machine.",choice:["...the machine?"],answerI:[3],end:false},
-        {message:"In this room is a furnace and an anvil. If you had the materials, you could smelt and forge things.",choice:["Where do I get materials?","Is there anything else to do?"],answer:[4,5],end:false},
+        {message:"In this room is a furnace and an anvil. If you had the materials, you could smelt and forge things.",choice:["Where do I get materials?","Is there anything else to do?"],answerI:[4,5],end:false},
         {message:"Draq wages constant war on other realms, so he needs to train people to work and fight to grind them down!",choice:["Who's the wizard in green?","What should I do?"],answerI:[6,2],end:false},
         {message:"Go out the door to the work yard and train on menial tasks so you become a good cog.",end:true},
         {message:"Aside from gathering and crafting, we do need good soldiers... you could train at combat. Also head out the door for that",end:true},
@@ -194,8 +198,8 @@ const NPC1 = {
     ],
     questBool:true
 }
-NPCBox.push(NPC0);
-NPCBox.push(NPC1);
+NPCBox.NPCs.push(NPC0);
+NPCBox.NPCs.push(NPC1);
 server.listen(port, () => {
     console.log('server listening on port: ', port);
 });

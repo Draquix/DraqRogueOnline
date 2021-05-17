@@ -156,9 +156,24 @@ function playerUp(player, id) {
         }
     }
 }
-function converse(){
-    let NPC = NPCBox.showNpc(0);
-    console.log(NPC);
+let converseFlow = 0;
+function converse(npc,flow){
+    let panel = document.querySelector('#interactions');
+    let name = document.createElement('p');
+    name.innerText = npc.name;
+    panel.appendChild(name);
+    let message = document.createElement('p');
+    message.innerText = npc.conversations[flow].message;
+    panel.appendChild(message);
+    for(var i = 0; i < npc.conversations[flow].choice.length; i++){
+        let btn = document.createElement('button');
+        btn.innerHTML = npc.conversations[flow].choice[i];
+        btn.onclick = function(){
+            consverseFlow = npc.conversations[flow].answerI[i];
+            converse(npc,npc.conversations[flow].answerI[i]);
+        }
+        panel.appendChild(btn);
+    }
 }
 socket.on('chat', data => {
     console.log('chat emitted from server',data.message);
@@ -173,8 +188,9 @@ socket.on('handshaking',(data,maps,legends) => {
 socket.on('player create',data => {
     playerUp(data.pc,data.id);
 });
-socket.on('NPC Bump', npc => {
-    console.log('NPC recieved :',npc);
+socket.on('Bump Pack', npc => {
+    console.log('NPC recieved :',npc.BumpPack[0]);
+    converse(npc.BumpPack[0],0);
 });
 socket.on('draw player', data => {
     draw();
@@ -191,10 +207,6 @@ socket.on('draw player', data => {
             character.ypos = data.pack[i].ypos;
             character.tileTarget = data.pack[i].tileTarget;
             character.stats = data.pack[i].stats;
-            if(data.pack[i].NPCFlag===true){
-                NPCBox.NPCs = data.pack[i].NPCBox;
-                converse();
-            }
         }
         ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
     }
