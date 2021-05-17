@@ -2,23 +2,39 @@
 // thanks to medium.com/@folkertjanvanderpol tutorials on socket.io multiuser server apps
 //modified into the game by Daniel Rogahn (Draquix)
 
-console.log('client is connected to html');
-const socket = io();
 
+//GLOBAL HTML ELEMENT VARIABLES
+// declaring constants needed to interact with elements on the HTML document
 const chat = document.querySelector('.chat-form');
 const chatInput = document.querySelector('.chat-input');
 const chatDump = document.querySelector('.chat-dump');
 const scrolltips = document.querySelector('#scrolltips');
+const login = document.querySelector('.login-form');
+const username = document.querySelector('#name');
+const passphrase = document.querySelector('#passphrase');
 
+//Basic event handler for submitting the form for the chat as an emit through
+//socket.io so the server can send the message to all other connected clients.
 chat.addEventListener('submit', e => {
     e.preventDefault();
     socket.emit('chat', chatInput.value);
     chatInput.value = '';
 });
+//This is event handler for the login form. It emits and triggers the server
+//to generate a player object for the username and password.
+login.addEventListener('submit', e => {
+    e.preventDefault();
+    socket.emit('login', {name: username.value, phrase: passphrase.value} );
+});
 
-const login = document.querySelector('.login-form');
-const username = document.querySelector('#name');
-const passphrase = document.querySelector('#passphrase');
+//GOBAL CONTAINER VARIABLES -- Some objects are generated on a local scope through
+//the socket transmissions and need global containers to put them in to get them
+//from their local scope to a global scope to be used by other functions in 
+//the running client.
+let character={};
+let localId={};
+
+//These boxes hold game data and have a method to return a data object
 const MapBox = {
     maps:[],
     showMap: function(mapNum){
@@ -37,12 +53,105 @@ const NPCBox = {
         return this.NPCs[npcNum];
     }
 }
-login.addEventListener('submit', e => {
-    e.preventDefault();
-    socket.emit('login', {name: username.value, phrase: passphrase.value} );
-});
-let character={};
+console.log('client is connected to html');
+//Data structures now in place, client is ready to run
 
+
+//Socket.io Connection established and below are event handlers for the emits
+
+const socket = io();
+socket.on('chat', data => {
+    console.log('chat emitted from server',data.message);
+    render(data.message,data.id);
+});
+socket.on('handshaking',(data,maps,legends) => {
+    localId.id = data.id;
+    MapBox.maps = maps;
+    LegendBox.legends = legends;
+    console.log('handed up id: ', localId.id);
+});
+socket.on('player create',data => {
+    playerStats(data.pc,data.id);
+    playerUp(data.pc,data.id);
+});
+socket.on('NPC Bump', npc => {
+    console.log('NPC recieved :',npc);
+});
+
+socket.on('draw player', data => {
+    draw();
+    let canvas = document.getElementById('game');
+    let ctx = canvas.getContext('2d');
+    let tile =12;
+    for(var i=0; i < data.pack.length; i++){
+        ctx.font = "12pt Monospace";
+        if (!(data.id===localId.id)){
+            ctx.fillStyle = "white";
+        } else {
+            ctx.fillStyle = "yellow";
+            character.xpos = data.pack[i].xpos;
+            character.ypos = data.pack[i].ypos;
+            character.tileTarget = data.pack[i].tileTarget;
+            character.stats = data.pack[i].stats;
+            if(data.pack[i].NPCFlag===true){
+                NPCBox.NPCs = data.pack[i].NPCBox;
+                converse();
+            }
+        }
+        ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
+    }
+});
+
+//CLIENT FUNCTIONS
+
+//This function is called by the chat emit and prints out the message
+//It uses a different class to differentiate between the local user and other
+//users connected from elsewhere. 
+function render(message, id) {
+    const output = document.createElement('p');
+    if (id === socket.id) {
+        output.classList.add('chat-message-user');
+    }
+    output.innerText = message;
+    chatDump.appendChild(output);
+}
+//This function prints the player's stats in the window.
+function playerStats(player,id){
+    let stats = document.querySelector('char-display');
+    statString = `Player Character: ${player.name} <BR>    |   HP: ${player.stats.hp}/${player.stats.mHp}`;
+    statString += `STR: ${player.stats.str} | DEX: ${player.stats.dex} | DEF: ${player.stats.def} <BR>`;
+    statString += `Digging: ${player.stats.dig} | Forging: ${player.stats.frg} | Fishing: ${player.stats.fsh} <BR>`;
+    statString += `Harvest: ${player.stats.har} | Cooking: ${player.stats.coo} | Smithing: ${player.stats.smt}<BR>`;
+    statString += `Coins: ${player.stats.coin} | LoadWeight: ${player.weightLoad} <BR>`;
+    stats.innerHTML = statString;
+}
+function playerUp(player, id) {
+    console.log('local id: ',localId.id);
+    if (id === localId.id) {
+        console.log('player up: ',player);
+        character.map = player.map;
+        character.name = player.name;
+        const stats = document.querySelector('#stats');
+        const displayName = document.createElement('li');
+        displayName.innerText = player.username;
+        stats.appendChild(displayName);
+        character.stats = player.stats;
+        let displayStat = document.createElement('li');
+        displayStat.innerText = 'STR: '+ player.stats.str + ' | DEX: ' + player.stats.dex + ' | DEF ' + player.stats.def;
+        stats.appendChild(displayStat);    
+        let scroll = document.createElement('li');
+        scroll.innerText = "Welcome, logged in as " + character.name + ".";
+        scrolltips.appendChild(scroll);
+        if(character.map===0){
+            let scroll = document.createElement('li');
+            scroll.innerText = "You see a man in red greeting newcomers, and a wizard in green robes by the chest.";
+            scrolltips.appendChild(scroll);
+            let scroll1 = document.createElement('li');
+            scroll1.innerText = "A bank chest has a black lid on it nearby.";
+            scrolltips.appendChild(scroll1);
+        }
+    }
+}
 function draw(){
     let canvas = document.getElementById('game');
     let ctx = canvas.getContext('2d');
@@ -119,86 +228,14 @@ function draw(){
     
 }
 
-function render(message, id) {
-    const output = document.createElement('p');
-    if (id === socket.id) {
-        output.classList.add('chat-message-user');
-    }
-    output.innerText = message;
-    chatDump.appendChild(output);
-}
-let localId={};
 
-function playerUp(player, id) {
-    console.log('local id: ',localId.id);
-    if (id === localId.id) {
-        console.log('player up: ',player);
-        character.map = player.map;
-        character.name = player.name;
-        const stats = document.querySelector('#stats');
-        const displayName = document.createElement('li');
-        displayName.innerText = player.username;
-        stats.appendChild(displayName);
-        character.stats = player.stats;
-        let displayStat = document.createElement('li');
-        displayStat.innerText = 'STR: '+ player.stats.str + ' | DEX: ' + player.stats.dex + ' | DEF ' + player.stats.def;
-        stats.appendChild(displayStat);    
-        let scroll = document.createElement('li');
-        scroll.innerText = "Welcome, logged in as " + character.name + ".";
-        scrolltips.appendChild(scroll);
-        if(character.map===0){
-            let scroll = document.createElement('li');
-            scroll.innerText = "You see a man in red greeting newcomers, and a wizard in green robes by the chest.";
-            scrolltips.appendChild(scroll);
-            let scroll1 = document.createElement('li');
-            scroll1.innerText = "A bank chest has a black lid on it nearby.";
-            scrolltips.appendChild(scroll1);
-        }
-    }
-}
+
 function converse(){
     let NPC = NPCBox.showNpc(0);
     console.log(NPC);
 }
-socket.on('chat', data => {
-    console.log('chat emitted from server',data.message);
-    render(data.message,data.id);
-});
-socket.on('handshaking',(data,maps,legends) => {
-    localId.id = data.id;
-    MapBox.maps = maps;
-    LegendBox.legends = legends;
-    console.log('handed up id: ', localId.id);
-});
-socket.on('player create',data => {
-    playerUp(data.pc,data.id);
-});
-socket.on('NPC Bump', npc => {
-    console.log('NPC recieved :',npc);
-});
-socket.on('draw player', data => {
-    draw();
-    let canvas = document.getElementById('game');
-    let ctx = canvas.getContext('2d');
-    let tile =12;
-    for(var i=0; i < data.pack.length; i++){
-        ctx.font = "12pt Monospace";
-        if (!(data.id===localId.id)){
-            ctx.fillStyle = "white";
-        } else {
-            ctx.fillStyle = "yellow";
-            character.xpos = data.pack[i].xpos;
-            character.ypos = data.pack[i].ypos;
-            character.tileTarget = data.pack[i].tileTarget;
-            character.stats = data.pack[i].stats;
-            if(data.pack[i].NPCFlag===true){
-                NPCBox.NPCs = data.pack[i].NPCBox;
-                converse();
-            }
-        }
-        ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
-    }
-});
+
+
 document.onkeydown = function(event){
     if(event.keyCode === 68)  //d
         socket.emit('key press',{inputDir:'right', state:true, id:localId});

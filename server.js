@@ -125,8 +125,10 @@ function Player (name, passphrase, id){
     this.xpos = 2;
     this.ypos = 2;
     this.stats = {
-        str:1,dex:1,def:1,mHp:10,hp:10,coin:100
+        str:1,dex:1,def:1,mHp:10,hp:10,dig:1,frg:1,fsh:1,har:1,coo:1,smh:1,coin:100
     };
+    this.weightLoad = 0;
+    this.currentInv = [];
     this.map = 0;
     this.pressRight = false;
     this.pressLeft = false;
@@ -145,7 +147,7 @@ function collision(tile,map,x,y,id){
         console.log("gotta P");
         for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
             console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
-            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[mqp].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
+            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[map].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
                 console.log('got a coordinate hit.');
                 return NPCBox.showNPC(i);
             }
