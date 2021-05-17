@@ -48,6 +48,7 @@ io.on('connection', socket => {
                 player.xpos--;
             } else {
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+                player.BumpFlag = true;
             }
         }
         if(data.inputDir==='right'){
@@ -57,6 +58,7 @@ io.on('connection', socket => {
                 player.xpos++;
             } else {
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+                player.BumpFlag =true;
             }
         }   
         if(data.inputDir==='up'){
@@ -66,6 +68,7 @@ io.on('connection', socket => {
                 player.ypos--;
             } else {
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
+                player.BumpFlag = true;
             }
         }
         if (data.inputDir==='down'){
@@ -75,6 +78,7 @@ io.on('connection', socket => {
                 player.ypos++;
             } else {
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos,player.id);
+                player.BumpFlag = true;
             }
         }
     });
@@ -102,7 +106,7 @@ setInterval(function() {
             for (var i in PLAYER_LIST){
                 let player = PLAYER_LIST[i]
                 if(player.BumpFlag===true){
-                    NPCpack.push(player.BumpPack);
+                    BumpPack.push(player.BumpPack);
                     player.BumpFlag = false;
                     let socket = SOCKET_LIST[i];
                     socket.emit('NPC Bump',{BumpPack, id: socket.id});
@@ -141,7 +145,7 @@ function collision(tile,map,x,y,id){
         console.log("gotta P");
         for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
             console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
-            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1)){
+            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[mqp].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
                 console.log('got a coordinate hit.');
                 return NPCBox.showNPC(i);
             }
@@ -194,8 +198,8 @@ const NPC1 = {
     ],
     questBool:true
 }
-NPCBox.push(NPC0);
-NPCBox.push(NPC1);
+NPCBox.NPCs.push(NPC0);
+NPCBox.NPCs.push(NPC1);
 server.listen(port, () => {
     console.log('server listening on port: ', port);
 });
