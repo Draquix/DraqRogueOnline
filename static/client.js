@@ -117,13 +117,17 @@ function render(message, id) {
 }
 //This function prints the player's stats in the window.
 function playerStats(player,id){
-    let stats = document.querySelector('char-display');
-    statString = `Player Character: ${player.name} <BR>    |   HP: ${player.stats.hp}/${player.stats.mHp}`;
-    statString += `STR: ${player.stats.str} | DEX: ${player.stats.dex} | DEF: ${player.stats.def} <BR>`;
-    statString += `Digging: ${player.stats.dig} | Forging: ${player.stats.frg} | Fishing: ${player.stats.fsh} <BR>`;
-    statString += `Harvest: ${player.stats.har} | Cooking: ${player.stats.coo} | Smithing: ${player.stats.smt}<BR>`;
-    statString += `Coins: ${player.stats.coin} | LoadWeight: ${player.weightLoad} <BR>`;
-    stats.innerHTML = statString;
+    let stats = document.querySelector('#char-display');
+    console.log('stats: ',stats);
+    console.log('player:',player);
+    let newP = document.createElement('p');
+    statString = `Player Character: ${player.name}<br>HP: ${player.stats.hp}/${player.stats.mHp}<br><br>`;
+    statString += `STR: ${player.stats.str} | DEX: ${player.stats.dex} | DEF: ${player.stats.def} <BR><br>`;
+    statString += `Digging: ${player.stats.dig} | Forging: ${player.stats.frg} | Fishing: ${player.stats.fsh} <BR><br>`;
+    statString += `Harvest: ${player.stats.har} | Cooking: ${player.stats.coo} | Smithing: ${player.stats.smt}<BR><br>`;
+    statString += `Coins: ${player.stats.coin} | LoadWeight: ${player.weightLoad} <BR><br>`;
+    newP.innerHTML = statString;
+    stats.appendChild(newP);
 }
 function playerUp(player, id) {
     console.log('local id: ',localId.id);
