@@ -47,12 +47,8 @@ const LegendBox = {
         return this.legends[legNum];
     }
 }
-const NPCBox = {
-    NPCs:[],
-    showNpc: function(npcNum){
-        return this.NPCs[npcNum];
-    }
-}
+const NPCBox = [];
+
 console.log('client is connected to html');
 //Data structures now in place, client is ready to run
 
@@ -76,6 +72,8 @@ socket.on('player create',data => {
 });
 socket.on('NPC Bump', npc => {
     console.log('NPC recieved :',npc);
+    NPCBox.push(npc.BumpPack[0]);
+    converse(0);
 });
 
 socket.on('draw player', data => {
@@ -233,10 +231,29 @@ function draw(){
 }
 
 
-
-function converse(){
-    let NPC = NPCBox.showNpc(0);
+function converse(index){
+    let NPC = NPCBox[0];
+    let display = document.querySelector('#interactions');
+    let name = document.createElement('p');
+    name.innerText = NPC.name;
+    name.classList.add('dialogue');
+    display.appendChild(name);
     console.log(NPC);
+    let message = document.createElement('p');
+    message.innerText = NPC.conversations[index].message;
+    message.classList.add('dialogue');
+    display.appendChild(message);
+    for(i in NPC.conversations[index].choice){
+        let btn = document.createElement('button');
+        btn.innerText = NPC.conversations[index].choice[i];
+        btn.classList.add('dialogue');
+        const redirect = NPC.conversations[index].answerI[i];
+        btn.onclick = function (){
+            const index = redirect;
+            converse(index);
+        }
+        display.appendChild(btn);
+    }
 }
 
 
