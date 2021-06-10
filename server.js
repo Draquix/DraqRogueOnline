@@ -54,6 +54,7 @@ io.on('connection', socket => {
         let name = user.name;
         let pass = user.phrase;
         player = new Player(name, pass, socket.id);
+        genInventory(player);
         PLAYER_LIST[socket.id] = player;
         console.log(PLAYER_LIST);
         socket.emit('player create',{pc:player,id: socket.id});
@@ -107,6 +108,20 @@ io.on('connection', socket => {
             }
         }
     });
+    socket.on('pack to chest', num => {
+        player = PLAYER_LIST[socket.id];
+        let item = player.backpack.splice(num.num,1);
+        player.chest.push(item[0]);
+        player.BumpFlag = 'Chest Bump';
+    });
+    socket.on('chest to pack', num => {
+        player = PLAYER_LIST[socket.id];
+        let item = player.chest.splice(num.num,1);
+        console.log('item to be transferred: ', item);
+        player.backpack.push(item[0]);
+        console.log(player.backpack);
+        player.BumpFlag = 'Chest Bump';
+    })
     //this recieves input data from on a client's form and emits the message to all clients
     //connected to have a live chat system.
     socket.on('chat', message => {
@@ -156,7 +171,7 @@ setInterval(function() {
                     socket.emit('NPC Bump',{BumpPack, id: socket.id});
                 }
                 if(player.BumpFlag==='Chest Bump'){
-                    BumpPack.push(player.BumpPack);
+                    BumpPack.push({chest: player.chest, pack: player.backpack});
                     player.BumpFlag = '';
                     let socket = SOCKET_LIST[i];
                     socket.emit('Chest Bump',{BumpPack, id: socket.id});
@@ -214,6 +229,8 @@ function Player (name, passphrase, id){
     this.passphrase = passphrase;
     this.id = id;
     this.xpos = 2;
+    this.chest = [];
+    this.backpack = [];
     this.ypos = 2;
     this.stats = {
         str:1,dex:1,def:1,mHp:10,hp:10,coin:100,
@@ -228,11 +245,32 @@ function Player (name, passphrase, id){
     this.BumpPack = {};
     this.BumpFlag = false;
     console.log("player created by name of:" , this.name);
-
 }
-
+function Tool (name, type, level, weight){
+    this.name = name;
+    this.type = type;
+    this.weight = weight;
+    this.level = level;
+}
+function Ore (metal, purity, weight){
+    this.name = metal + ' ore';
+    this.metal = metal;
+    this.purity = purity;
+    this.weight = weight;
+}
 console.log('server dependencies loaded...');
-
+function genInventory(player){
+    let startingHammer = new Tool('Rusty Iron Hammer','hammer',5,5);
+    player.chest.push(startingHammer);
+    let startingPick = new Tool('Copper Pickaxe','pick',1,5);
+    player.chest.push(startingPick);
+    for(var i = 0; i < 6; i++){
+        let copperore = new Ore('copper',.34,2.5);
+        player.chest.push(copperore);
+    }
+    let startingAxe = new Tool('Stone Hatchet','axe',1,5);
+    player.backpack.push(startingAxe);
+}
 
 //Collision Handling -- This just returns a value to set the player's flag that will alert
 //the runtime engine what type of data it's sending.
@@ -276,7 +314,6 @@ function collision(tile,map,x,y,id){
             console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
             if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[map].coordNPC[i][0]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
                 console.log('got a coordinate hit.');
-                return OpenChest();
             }
         }
     }

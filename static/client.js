@@ -145,11 +145,14 @@ function playerUp(player, id) {
         console.log('player up: ',player);
         character.map = player.map;
         character.name = player.name;
+        console.log(player);
         const stats = document.querySelector('#char-display');
+        stats.innerHTML =  " ";
         const displayName = document.createElement('p');
-        displayName.innerText = player.username;
+        displayName.innerText = player.name;
         stats.appendChild(displayName);
         character.stats = player.stats;
+        character.backpack = player.backpack;
         let displayHealth = document.createElement('li');
         displayHealth.innerText = 'Hp: ' + player.stats.hp + '/' + player.stats.mHp;
         let displayStat = document.createElement('li');
@@ -199,6 +202,40 @@ function converse(NPC,flow){
         display.appendChild(btn);
     }
 }
+function chestDisplay(){
+    const display = document.querySelector('#char-display');
+    const inventory = document.createElement('ul');
+    let title = document.createElement('li');
+    title.innerText = "Items in the Chest:";
+    inventory.appendChild(title);
+    for(i in character.chest){
+        let item = document.createElement('li');
+        item.innerHTML = character.chest[i].name + ' .. wt: ' + character.chest[i].weight + `<a href="javascript:getPack(${i})"> Take </a>`;
+        inventory.appendChild(item);
+    }
+    display.innerHTML = ' ';
+    display.appendChild(inventory);
+}
+function playerInventory(){
+    const display = document.querySelector('#interactions');
+    clearDisplay();
+    const inventory = document.createElement("ul");
+    let title = document.createElement("li");
+    title.innerText = 'Backpack Contents:';
+    inventory.appendChild(title);
+    for(i in character.backpack){
+        let item = document.createElement('li');
+        item.innerHTML = character.backpack[i].name + ' .. wt: ' + character.backpack[i].weight + `<a href="javascript:putPack(${i})"> Take </a>`;
+        inventory.appendChild(item);
+    }
+    display.appendChild(inventory);
+}
+function getPack(itemNum){
+    socket.emit('chest to pack', {num:itemNum});
+}
+function putPack(itemNum){
+    socket.emit('pack to chest', {num:itemNum});
+}
 socket.on('chat', data => {
     console.log('chat emitted from server',data.message);
     render(data.message,data.id);
@@ -220,6 +257,13 @@ socket.on('POI Bump', (poi,id) => {
     console.log('POI recieved: ', poi, "id: ", id);
     clearDisplay();
     display(poi.BumpPack[0],id);
+});
+socket.on('Chest Bump', inv => {
+    console.log('Chest Data Received: ', inv);
+    character.chest = inv.BumpPack[0].chest;
+    character.backpack = inv.BumpPack[0].pack;
+    chestDisplay();
+    playerInventory();
 })
 socket.on('draw player', data => {
     draw();
@@ -245,6 +289,7 @@ socket.on('draw player', data => {
     }
 });
 document.onkeydown = function(event){
+    playerUp(character, localId.id);
     if(event.keyCode === 68)  //d
         socket.emit('key press',{inputDir:'right', state:true, id:localId});
     else if(event.keyCode === 83) //s
@@ -253,6 +298,7 @@ document.onkeydown = function(event){
         socket.emit('key press', {inputDir:'left',state:true, id:localId});
     else if(event.keyCode === 87) //w
         socket.emit('key press', {inputDir:'up',state:true, id:localId});
+
 }
 
 

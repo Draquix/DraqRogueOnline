@@ -27,6 +27,7 @@ header{
     width:300px;
     height:198px;
     border:2px solid black;
+    font-size: small;
 }
 canvas {
     float:left;
