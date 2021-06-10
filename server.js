@@ -30,7 +30,12 @@ let NPCBox = {
         return this.NPCs[npcNum]
     }
 };
-
+let POIBox = {
+    POIs:[],
+    showPOI:function(poiNum){
+        return this.POIs[poiNum]
+    }
+}
 //This portion runs on a client connecting to a socket as an input/output handler to receive 
 //data from client interaction such as logging in, or keypresses, or changes to the player's
 //character such as gaining money, losing health, or winning a battle.
@@ -124,6 +129,7 @@ setInterval(function() {
             for (var i in PLAYER_LIST){
                 let player = PLAYER_LIST[i];
                 pack.push({
+                    name:player.name,
                     stats:player.stats,
                     xpos:player.xpos,
                     ypos:player.ypos,
@@ -210,7 +216,8 @@ function Player (name, passphrase, id){
     this.xpos = 2;
     this.ypos = 2;
     this.stats = {
-        str:1,dex:1,def:1,mHp:10,hp:10,coin:100
+        str:1,dex:1,def:1,mHp:10,hp:10,coin:100,
+        mine:1,forge:1,gather:1,fish:1,cook:1,chop:1
     };
     this.map = 0;
     this.pressRight = false;
@@ -256,7 +263,7 @@ function collision(tile,map,x,y,id){
         console.log("gotta P");
         for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
             console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
-            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[mqp].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
+            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[map].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
                 console.log('got a coordinate hit.');
                 return NPCBox.showNPC(i);
             }
@@ -267,9 +274,18 @@ function collision(tile,map,x,y,id){
         console.log("%");
         for(var i = 0; i < LegendBox[map].coordNPC.length; i++){
             console.log('NPC coordinates',x,y ,LegendBox[map].coordNPC[i][0],LegendBox[map].coordNPC[i][1]);
-            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[mqp].coordNPC[i]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
+            if((LegendBox[map].coordNPC[i][0]===x-1||LegendBox[map].coordNPC[i][0]===x||LegendBox[map].coordNPC[i][0]===x+2||LegendBox[map].coordNPC[i][0]===x+1)&&(LegendBox[map].coordNPC[i][1]===y-1||LegendBox[map].coordNPC[i][1]===y||LegendBox[map].coordNPC[i][1]===y+1||LegendBox[map].coordNPC[i][1][y+2])){
                 console.log('got a coordinate hit.');
                 return OpenChest();
+            }
+        }
+    }
+    if(tile==="*"){
+        console.log("*");
+        for(var i = 0; i < LegendBox[map].coordPOI.length; i++){
+            if((LegendBox[map].coordPOI[i][0]===x-1||LegendBox[map].coordPOI[i][0]===x||LegendBox[map].coordPOI[i][0]==x+2||LegendBox[map].coordPOI[i][0]===x+1)&&(LegendBox[map].coordPOI[i][1]===y-1||LegendBox[map].coordPOI[i][1]===y||LegendBox[map].coordPOI[i][1]===y+1||LegendBox[map].coordPOI[i][1][y+2])){
+                console.log('encountered point of interest.');
+                return POIBox.showPOI(i);
             }
         }
     }
@@ -297,11 +313,13 @@ const legend0 ={
     NPC: ['red','green'],
     coordNPC: [[4,5],[7,8]],
     indexNPC:[0,1],
+    coordPOI: [[6,3],[10,10]],
+    indexPOI:[0,1],
     Wall: 'grey',
     floorDots: 'gray',
     floorSpots: 'blue',
 };
-
+ 
 //NPCs: NPC characters are represented as having a name, and a conversation tree, potentially quests and
 //items for trade or sale.
 const NPC0 = {
@@ -324,12 +342,19 @@ const NPC1 = {
     ],
     questBool:true
 }
+//POIs:  Points of Interest are like signposts, when the character runs into them it displays a message
+// about the contents of the nearby game world.
+const POI0 = {message:['Here is the barracks forge and anvil.  The red "=" forge can be used to refine metal ores into ingots to be made into gear.  The "-" anvil along with a hammer can process those ingots into items']};
+const POI1 = {message:['The red "&" fire is where you can cook basic meats into edible food to heal with.']};
+
 //Game data is pushed to Global Variables that were established as containers to keep the game world
 //static as the players interact with it and change their own unique experience.
 MapBox.push(map0);
 LegendBox.push(legend0);
 NPCBox.NPCs.push(NPC0);
 NPCBox.NPCs.push(NPC1);
+POIBox.POIs.push(POI0);
+POIBox.POIs.push(POI1)
 
 
 

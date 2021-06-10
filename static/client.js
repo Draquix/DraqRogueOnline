@@ -118,6 +118,16 @@ function draw(){
     }
     
 }
+function display(text,id) {
+    const display = document.querySelector('#interactions');
+    let message = document.createElement('p');
+    message.innerText = text.message[0];
+    display.appendChild(message);
+}
+function clearDisplay(){
+    const display = document.querySelector('#interactions');
+    display.innerHTML = " ";
+}
 
 function render(message, id) {
     const output = document.createElement('p');
@@ -135,14 +145,25 @@ function playerUp(player, id) {
         console.log('player up: ',player);
         character.map = player.map;
         character.name = player.name;
-        const stats = document.querySelector('#stats');
-        const displayName = document.createElement('li');
+        const stats = document.querySelector('#char-display');
+        const displayName = document.createElement('p');
         displayName.innerText = player.username;
         stats.appendChild(displayName);
         character.stats = player.stats;
+        let displayHealth = document.createElement('li');
+        displayHealth.innerText = 'Hp: ' + player.stats.hp + '/' + player.stats.mHp;
         let displayStat = document.createElement('li');
         displayStat.innerText = 'STR: '+ player.stats.str + ' | DEX: ' + player.stats.dex + ' | DEF ' + player.stats.def;
         stats.appendChild(displayStat);    
+        let displayStat1 = document.createElement('li');
+        displayStat1.innerText = 'Mining: ' + player.stats.mine + ' | Forging: ' + player.stats.forge + ' | Gather: ' + player.stats.gather;
+        stats.appendChild(displayStat1);
+        let displayStat2 = document.createElement('li');
+        displayStat2.innerText = 'Fishing: ' + player.stats.fish + ' | Cooking: ' + player.stats.cook + ' | Woodcutting: ' + player.stats.chop;
+        stats.appendChild(displayStat2);
+        let displayMats = document.createElement('li');
+        displayMats.innerText = 'Coins: ' + player.stats.coin;
+        stats.appendChild(displayMats);
         let scroll = document.createElement('li');
         scroll.innerText = "Welcome, logged in as " + character.name + ".";
         scrolltips.appendChild(scroll);
@@ -156,9 +177,27 @@ function playerUp(player, id) {
         }
     }
 }
-function converse(){
-    let NPC = NPCBox.showNpc(0);
-    console.log(NPC);
+let CONVO = 0;
+function converse(NPC,flow){
+    console.log('npc: ', NPC);
+    clearDisplay();
+    const display = document.querySelector('#interactions');
+    const NPCname = document.createElement('p');
+    NPCname.innerText = NPC.name;
+    display.appendChild(NPCname);
+    let message = document.createElement('p');
+    message.innerText = NPC.conversations[flow].message;
+    display.appendChild(message);
+    for ( i in NPC.conversations[flow].choice){
+        let btn = document.createElement('button');
+        btn.innerText = NPC.conversations[flow].choice[i];
+        let trigger = NPC.conversations[flow].answerI[i];
+        let NPCcopy = NPC;
+        btn.onclick = function () {
+            converse(NPCcopy,trigger);
+        }
+        display.appendChild(btn);
+    }
 }
 socket.on('chat', data => {
     console.log('chat emitted from server',data.message);
@@ -175,7 +214,13 @@ socket.on('player create',data => {
 });
 socket.on('NPC Bump', npc => {
     console.log('NPC recieved :',npc);
+    converse(npc.BumpPack[0],0)
 });
+socket.on('POI Bump', (poi,id) => {
+    console.log('POI recieved: ', poi, "id: ", id);
+    clearDisplay();
+    display(poi.BumpPack[0],id);
+})
 socket.on('draw player', data => {
     draw();
     let canvas = document.getElementById('game');
