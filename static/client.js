@@ -155,6 +155,7 @@ function playerUp(player, id) {
         character.backpack = player.backpack;
         let displayHealth = document.createElement('li');
         displayHealth.innerText = 'Hp: ' + player.stats.hp + '/' + player.stats.mHp;
+        stats.appendChild(displayHealth);
         let displayStat = document.createElement('li');
         displayStat.innerText = 'STR: '+ player.stats.str + ' | DEX: ' + player.stats.dex + ' | DEF ' + player.stats.def;
         stats.appendChild(displayStat);    
@@ -167,6 +168,10 @@ function playerUp(player, id) {
         let displayMats = document.createElement('li');
         displayMats.innerText = 'Coins: ' + player.stats.coin;
         stats.appendChild(displayMats);
+        let displayWeight = document.createElement('li');
+        let weightLimit = 20 + 10*player.stats.str;
+        displayWeight.innerText = character.weightLoad + 'kg of max ' + weightLimit + ' kgs carrying.';
+        stats.appendChild(displayWeight);
         let scroll = document.createElement('li');
         scroll.innerText = "Welcome, logged in as " + character.name + ".";
         scrolltips.appendChild(scroll);
@@ -228,6 +233,9 @@ function playerInventory(){
         item.innerHTML = character.backpack[i].name + ' .. wt: ' + character.backpack[i].weight + `<a href="javascript:putPack(${i})"> Take </a>`;
         inventory.appendChild(item);
     }
+    let weightLimit = document.createElement('li');
+    weightLimit.innerText = character.weightLoad + 'kgs of total allowed load of ' + character.weightLimit;
+    inventory.appendChild(weightLimit);
     display.appendChild(inventory);
 }
 function getPack(itemNum){
@@ -284,6 +292,7 @@ socket.on('draw player', data => {
                 NPCBox.NPCs = data.pack[i].NPCBox;
                 converse();
             }
+            character.weightLoad = data.pack[i].weight;
         }
         ctx.fillText('P',data.pack[i].xpos*tile,data.pack[i].ypos*tile);
     }

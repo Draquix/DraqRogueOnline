@@ -111,6 +111,7 @@ io.on('connection', socket => {
     socket.on('pack to chest', num => {
         player = PLAYER_LIST[socket.id];
         let item = player.backpack.splice(num.num,1);
+        player.weightLoad -= item.weight;
         player.chest.push(item[0]);
         player.BumpFlag = 'Chest Bump';
     });
@@ -119,6 +120,7 @@ io.on('connection', socket => {
         let item = player.chest.splice(num.num,1);
         console.log('item to be transferred: ', item);
         player.backpack.push(item[0]);
+        player.weightLoad += item.weight;
         console.log(player.backpack);
         player.BumpFlag = 'Chest Bump';
     })
@@ -146,6 +148,7 @@ setInterval(function() {
                 pack.push({
                     name:player.name,
                     stats:player.stats,
+                    weight:player.weightLoad,
                     xpos:player.xpos,
                     ypos:player.ypos,
                     mapDex:player.map,
@@ -236,6 +239,8 @@ function Player (name, passphrase, id){
         str:1,dex:1,def:1,mHp:10,hp:10,coin:100,
         mine:1,forge:1,gather:1,fish:1,cook:1,chop:1
     };
+    this.weightLimit = 20 + 10*this.stats.str;
+    this.weightLoad = 0;
     this.map = 0;
     this.pressRight = false;
     this.pressLeft = false;
@@ -265,10 +270,11 @@ function genInventory(player){
     let startingPick = new Tool('Copper Pickaxe','pick',1,5);
     player.chest.push(startingPick);
     for(var i = 0; i < 6; i++){
-        let copperore = new Ore('copper',.34,2.5);
+        let copperore = new Ore('copper',.34,3);
         player.chest.push(copperore);
     }
     let startingAxe = new Tool('Stone Hatchet','axe',1,5);
+    player.weightLoad += startingAxe.weight;
     player.backpack.push(startingAxe);
 }
 
