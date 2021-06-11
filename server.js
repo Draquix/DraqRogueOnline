@@ -108,20 +108,53 @@ io.on('connection', socket => {
             }
         }
     });
+    socket.on('firing forge', id => {
+        player = PLAYER_LIST[socket.id];
+        if(player.forge.mats.length>0)
+            player.smelting = true;
+    })
     socket.on('pack to chest', num => {
         player = PLAYER_LIST[socket.id];
         let item = player.backpack.splice(num.num,1);
-        player.weightLoad -= item.weight;
+        player.weightLoad -= item[0].weight;
         player.chest.push(item[0]);
         player.BumpFlag = 'Chest Bump';
     });
     socket.on('chest to pack', num => {
         player = PLAYER_LIST[socket.id];
         let item = player.chest.splice(num.num,1);
-        console.log('item to be transferred: ', item);
         player.backpack.push(item[0]);
-        player.weightLoad += item.weight;
+        player.weightLoad += item[0].weight;
         console.log(player.backpack);
+        player.BumpFlag = 'Chest Bump';
+    });
+    socket.on('load ore', num => {
+        player = PLAYER_LIST[socket.id];
+        console.log('load ore triggered : ', player.backpack[num.num]);
+        let ore = player.backpack[num.num];
+        console.log(player.backpack);
+        player.backpack.splice(num.num,1);
+        console.log(player.backpack);
+        player.forge.mats.push(ore);
+        // delete player.backpack[num.num];
+        player.forgeBypass = true;
+        player.BumpFlag = 'Chest Bump';
+    });
+    socket.on('remove ore', num => {
+        player = PLAYER_LIST[socket.id];
+        let ore = player.forge.mats[num.num];
+        player.forge.mats.splice(num.num,1);
+        player.backpack.push(ore);
+        // delete player.forge.mats[num.num];
+        player.forgeBypass = true;
+        player.BumpFlag = 'Chest Bump';
+    });
+    socket.on('get bar', num => {
+        player = PLAYER_LIST[socket.id];
+        let bar = player.forge.product[num.num];
+        player.forge.product.splice(num.num,1);
+        player.backpack.push(bar);
+        player.forgeBypass = true;
         player.BumpFlag = 'Chest Bump';
     })
     //this recieves input data from on a client's form and emits the message to all clients
@@ -139,6 +172,34 @@ io.on('connection', socket => {
 //the multiplayer presence can be maintained.
 
 let timer = 0;
+//This is the craft/combat ticker for ongoing actions.
+setInterval(function() {
+    let pack = [];
+    for (var i in PLAYER_LIST){
+        let player = PLAYER_LIST[i];
+        if(player.smelting===true){
+            let ore = player.forge.mats[player.forge.mats.length-1];
+            let msg = 'Burning one chunk of ' + ore.name + ' with a purity of ' + ore.purity;
+            player.forge.pureNum += ore.purity;
+            player.forge.type = ore.metal;
+            player.forge.mats.pop();
+            if(player.forge.mats.length===0){
+                player.smelting=false;
+            }
+            if(player.forge.pureNum>1){
+                player.forge.pureNum--;
+                bar = new Bar(player.forge.type,3);
+                console.log(bar);
+                player.forge.product.push(bar);
+                msg += "And got a pure bar back!";
+            }
+            pack.push({forge:player.forge,smelting:player.smelting,message:msg});
+            let socket = SOCKET_LIST[i];
+            socket.emit('forging',{pack,id:socket.id});
+        }
+    }
+
+},1200)
 setInterval(function() {
             let pack = [];
             //this loop sends updated player data for each connection to every client to track
@@ -174,8 +235,9 @@ setInterval(function() {
                     socket.emit('NPC Bump',{BumpPack, id: socket.id});
                 }
                 if(player.BumpFlag==='Chest Bump'){
-                    BumpPack.push({chest: player.chest, pack: player.backpack});
+                    BumpPack.push({chest: player.chest, pack: player.backpack,forge:player.forge, forgeFlag:player.forgeBypass});
                     player.BumpFlag = '';
+                    player.forgeBypass = false;
                     let socket = SOCKET_LIST[i];
                     socket.emit('Chest Bump',{BumpPack, id: socket.id});
                 }
@@ -204,7 +266,7 @@ setInterval(function() {
                     socket.emit('Door Bump',{BumpPack, id: socket.id});
                 }
                 if(player.BumpFlag==='Forge Bump'){
-                    BumpPack.push(player.BumpPack);
+                    BumpPack.push(player.forge);
                     player.BumpFlag = '';
                     let socket = SOCKET_LIST[i];
                     socket.emit('Forge Bump',{BumpPack, id: socket.id});
@@ -231,6 +293,7 @@ function Player (name, passphrase, id){
     this.username = name;
     this.passphrase = passphrase;
     this.id = id;
+    this.tool = [];
     this.xpos = 2;
     this.chest = [];
     this.backpack = [];
@@ -249,6 +312,8 @@ function Player (name, passphrase, id){
     this.tileTarget = " ";
     this.BumpPack = {};
     this.BumpFlag = false;
+    this.forgeBypass = false;
+    this.smelting = false;
     console.log("player created by name of:" , this.name);
 }
 function Tool (name, type, level, weight){
@@ -263,6 +328,12 @@ function Ore (metal, purity, weight){
     this.purity = purity;
     this.weight = weight;
 }
+function Bar(type,weight){
+    this.name = type + ' bar';
+    this.type = type;
+    this.weight = weight;
+}
+
 console.log('server dependencies loaded...');
 function genInventory(player){
     let startingHammer = new Tool('Rusty Iron Hammer','hammer',5,5);
@@ -276,6 +347,18 @@ function genInventory(player){
     let startingAxe = new Tool('Stone Hatchet','axe',1,5);
     player.weightLoad += startingAxe.weight;
     player.backpack.push(startingAxe);
+    player.forge = {
+        pureNum: 0,
+        type: null,
+        mats:[],
+        product:[],
+        smeltCopper: function(ore){
+            for(var i = 0; i < ore; i++){
+                let copperbar = new Bar('copper', 3);
+                this.product.push(copperbar);
+            }
+        }
+    }
 }
 
 //Collision Handling -- This just returns a value to set the player's flag that will alert
@@ -331,6 +414,9 @@ function collision(tile,map,x,y,id){
                 return POIBox.showPOI(i);
             }
         }
+    }
+    if(tile==="="){
+        return {forge: true};
     }
 }
 // ***GAME CONTENT DATA BELOW***

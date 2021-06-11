@@ -10,6 +10,7 @@ const chatInput = document.querySelector('.chat-input');
 const chatDump = document.querySelector('.chat-dump');
 const scrolltips = document.querySelector('#scrolltips');
 
+
 chat.addEventListener('submit', e => {
     e.preventDefault();
     socket.emit('chat', chatInput.value);
@@ -19,6 +20,8 @@ chat.addEventListener('submit', e => {
 const login = document.querySelector('.login-form');
 const username = document.querySelector('#name');
 const passphrase = document.querySelector('#passphrase');
+
+
 const MapBox = {
     maps:[],
     showMap: function(mapNum){
@@ -145,6 +148,8 @@ function playerUp(player, id) {
         console.log('player up: ',player);
         character.map = player.map;
         character.name = player.name;
+        character.weightLoad = player.weightLoad;
+        character.weightLimit = player.weightLimit;
         console.log(player);
         const stats = document.querySelector('#char-display');
         stats.innerHTML =  " ";
@@ -172,17 +177,20 @@ function playerUp(player, id) {
         let weightLimit = 20 + 10*player.stats.str;
         displayWeight.innerText = character.weightLoad + 'kg of max ' + weightLimit + ' kgs carrying.';
         stats.appendChild(displayWeight);
-        let scroll = document.createElement('li');
-        scroll.innerText = "Welcome, logged in as " + character.name + ".";
-        scrolltips.appendChild(scroll);
-        if(character.map===0){
-            let scroll = document.createElement('li');
-            scroll.innerText = "You see a man in red greeting newcomers, and a wizard in green robes by the chest.";
-            scrolltips.appendChild(scroll);
-            let scroll1 = document.createElement('li');
-            scroll1.innerText = "A bank chest has a black lid on it nearby.";
-            scrolltips.appendChild(scroll1);
-        }
+        let contentsLink = document.createElement('p');
+        contentsLink.innerHTML = `<a href="javascript:playerInventory()"> Backpack Contents </a>`;
+        stats.appendChild(contentsLink);
+        // let scroll = document.createElement('li');
+        // scroll.innerText = "Welcome, logged in as " + character.name + ".";
+        // scrolltips.appendChild(scroll);
+        // if(character.map===0){
+        //     let scroll = document.createElement('li');
+        //     scroll.innerText = "You see a man in red greeting newcomers, and a wizard in green robes by the chest.";
+        //     scrolltips.appendChild(scroll);
+        //     let scroll1 = document.createElement('li');
+        //     scroll1.innerText = "A bank chest has a black lid on it nearby.";
+        //     scrolltips.appendChild(scroll1);
+        // }
     }
 }
 let CONVO = 0;
@@ -230,7 +238,7 @@ function playerInventory(){
     inventory.appendChild(title);
     for(i in character.backpack){
         let item = document.createElement('li');
-        item.innerHTML = character.backpack[i].name + ' .. wt: ' + character.backpack[i].weight + `<a href="javascript:putPack(${i})"> Take </a>`;
+        item.innerHTML = character.backpack[i].name + ' .. wt: ' + character.backpack[i].weight + `<a href="javascript:putPack(${i})"> Store </a>`;
         inventory.appendChild(item);
     }
     let weightLimit = document.createElement('li');
@@ -243,6 +251,64 @@ function getPack(itemNum){
 }
 function putPack(itemNum){
     socket.emit('pack to chest', {num:itemNum});
+}
+function loadForge(forge){
+    const display = document.querySelector('#interactions');
+    const inventory = document.querySelector('#char-display');
+    display.innerHTML = " ";
+    inventory.innerHTML = " ";
+    let metal = document.createElement('p');
+    if(forge.mats.length>0)
+        forge.type=forge.mats[0].metal;
+    metal.innerText = "Using metal type: " + forge.type;
+    
+    display.appendChild(metal);
+    
+    let oreCount = document.createElement('p');
+    oreCount.innerText = forge.mats.length + "metal ores total.";
+    display.appendChild(oreCount);
+    var i = 0
+    for (i in character.backpack){
+        if(character.backpack[i].metal==='copper'){
+            let oreList = document.createElement('p');
+            console.log(character.backpack[i]);
+            oreList.innerHTML = `${character.backpack[i].metal} ore of a ${character.backpack[i].purity} purity rating, weighing ${character.backpack[i].weight} kgs. <a href="javascript:loadOre(${i})"> Add </a>`;
+            inventory.appendChild(oreList);
+        }
+    }
+    forge.mats.forEach( mat => {
+        forge.pureNum += mat.purity;
+        let ore = document.createElement('P');
+        ore.innerHTML = mat.metal + " ore with " + mat.purity + ` purity content.  <a href="javascript:removeOre(${i})"> Remove </a>`;
+        display.appendChild(ore);
+        i++;
+    }); 
+    let pureContent = document.createElement('p');
+    pureContent.innerText = 'Ore combined has ' + forge.pureNum + ' bars worth of metal.';
+    display.appendChild(pureContent);
+    let smeltLink = document.createElement('p');
+    smeltLink.innerHTML = `<a href="javascript:fireForge()"> Smelt the Ore </a>`;
+    display.appendChild(smeltLink);
+    let divide = document.createElement('p');
+    divide.innerText = "-----------------------";
+    display.appendChild(divide);
+    for (var i in forge.product){
+        let item = document.createElement('p');
+        item.innerHTML = `A ${item.type} bar weighing ${item.weight} kgs. <a href="javascript:getBar(${i})"> Take </a>`;
+        display.appendChild(item);
+    }
+}
+function fireForge(){
+    socket.emit('firing forge',{id:socket.id})
+}
+function getBar(num){
+    socket.emit('get bar',{num:num});
+}
+function loadOre(num){
+    socket.emit('load ore',{num:num});
+}
+function removeOre(num){
+    socket.emit('remove ore',{num:num});
 }
 socket.on('chat', data => {
     console.log('chat emitted from server',data.message);
@@ -270,8 +336,26 @@ socket.on('Chest Bump', inv => {
     console.log('Chest Data Received: ', inv);
     character.chest = inv.BumpPack[0].chest;
     character.backpack = inv.BumpPack[0].pack;
-    chestDisplay();
-    playerInventory();
+    if(inv.BumpPack[0].forgeFlag===false){
+        chestDisplay();
+        playerInventory();
+    }else{
+        loadForge(inv.BumpPack[0].forge);
+    }
+
+});
+socket.on('Forge Bump', forge => {
+    loadForge(forge.BumpPack[0]);
+});
+socket.on('forging', forge => {
+    let display = document.querySelector('#interactions');
+    let message = document.createElement('P');
+    console.log('forging packet: ',forge.pack[0].message);
+    message.innerText = forge.pack[0].message;
+    display.appendChild(message);
+    if(forge.pack[0].smelting===false){
+        loadForge(forge.pack[0].forge)
+    }
 })
 socket.on('draw player', data => {
     draw();

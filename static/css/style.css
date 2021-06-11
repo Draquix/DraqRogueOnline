@@ -12,22 +12,31 @@ header{
     justify-content: center;
 }
 #scrolltips{
+    background-color: black;
+    color:white;
     overflow: scroll;
     width: 200px;
-    height:360px;
+    height:500px;
     float:right;
     border:2px solid black;
 }
 #interactions{
-    width: 300px;
-    height:160px;
-    border:2px solid black;
-}
-#char-display{
-    width:300px;
-    height:198px;
+    width: 360px;
+    height:200px;
     border:2px solid black;
     font-size: small;
+    background-color: black;
+    color:purple;
+    overflow: scroll;
+}
+#char-display{
+    overflow:scroll;
+    width:360px;
+    height:300px;
+    border:2px solid black;
+    font-size: small;
+    background-color: black;
+    color: green;
 }
 canvas {
     float:left;
