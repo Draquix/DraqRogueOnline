@@ -156,7 +156,21 @@ io.on('connection', socket => {
         player.backpack.push(bar);
         player.forgeBypass = true;
         player.BumpFlag = 'Chest Bump';
-    })
+    });
+    socket.on('food on fire', num => {
+        player = PLAYER_LIST[socket.id];
+        let food = player.backpack[num.num];
+        if(player.stats.cook>=food.base){
+            let skillcheck = Math.random - player.stats.cook*.01;
+            if(skillcheck<food.difficulty){
+                food.raw=false;
+                socket.emit('cook success', {message:"You cooked it successfully!"});
+            } else {
+                player.backpack.splice(num.num,1);
+                socket.emit('cook failure', {message:"You burned the shit out of it!"});
+            }
+        }
+    });
     //this recieves input data from on a client's form and emits the message to all clients
     //connected to have a live chat system.
     socket.on('chat', message => {
@@ -179,26 +193,39 @@ setInterval(function() {
         let player = PLAYER_LIST[i];
         if(player.smelting===true){
             let ore = player.forge.mats[player.forge.mats.length-1];
-            let msg = 'Burning one chunk of ' + ore.name + ' with a purity of ' + ore.purity;
-            player.forge.pureNum += ore.purity;
-            player.forge.type = ore.metal;
-            player.forge.mats.pop();
-            if(player.forge.mats.length===0){
-                player.smelting=false;
-            }
-            if(player.forge.pureNum>1){
-                player.forge.pureNum--;
-                bar = new Bar(player.forge.type,3);
-                console.log(bar);
-                player.forge.product.push(bar);
-                msg += "And got a pure bar back!";
+            var msg = 'Burning one chunk of ' + ore.name + ' with a purity of ' + ore.purity;
+            console.log('levels:',player.stats.forge, ore.base);
+            if(player.stats.forge>=ore.base){
+                console.log('smelting the recipe');
+                let skillcheck = Math.random() - player.stats.forge*.01;
+                if(skillcheck<ore.difficulty){
+                    player.forge.pureNum += ore.purity;
+                    player.forge.type = ore.metal;
+                    msg += ' ...it was a successful smelt...'
+                    player.forge.mats.pop();
+                    if(player.forge.mats.length===0){
+                        player.smelting=false;
+                    }
+                    if(player.forge.pureNum>1){
+                        player.forge.pureNum--;
+                        bar = new Bar(player.forge.type,3);
+                        console.log(bar);
+                        player.forge.product.push(bar);
+                        msg += " And you got a pure bar back!";
+                    }
+                } else {
+                    player.forge.mats.pop();
+                    if(player.forge.mats.length===0){
+                        player.smelting=false;
+                    }
+                    msg += "But the ore burned up in the furnace to no gain.";
+                }
             }
             pack.push({forge:player.forge,smelting:player.smelting,message:msg});
             let socket = SOCKET_LIST[i];
             socket.emit('forging',{pack,id:socket.id});
-        }
+            }
     }
-
 },1200)
 setInterval(function() {
             let pack = [];
@@ -322,16 +349,28 @@ function Tool (name, type, level, weight){
     this.weight = weight;
     this.level = level;
 }
-function Ore (metal, purity, weight){
+function Ore (metal, purity, weight, base, difficulty){
     this.name = metal + ' ore';
     this.metal = metal;
     this.purity = purity;
     this.weight = weight;
+    this.base = base;
+    this.difficulty = difficulty;
 }
-function Bar(type,weight){
+function Bar(type,weight,base, difficulty){
     this.name = type + ' bar';
     this.type = type;
     this.weight = weight;
+    this.base = base;
+    this.difficulty = difficulty;
+}
+function Food( name, raw, health, weight, base, difficulty){
+    this.name = name;
+    this.raw = raw;
+    this.health = health;
+    this.weight = weight;
+    this.base = base;
+    this.difficulty = difficulty;
 }
 
 console.log('server dependencies loaded...');
@@ -341,8 +380,12 @@ function genInventory(player){
     let startingPick = new Tool('Copper Pickaxe','pick',1,5);
     player.chest.push(startingPick);
     for(var i = 0; i < 6; i++){
-        let copperore = new Ore('copper',.34,3);
+        let copperore = new Ore('copper',.34,3,1,.8);
         player.chest.push(copperore);
+    }
+    for(var i = 0; i < 3; i++){
+        let sardine = new Food("sardine",true,4,2,1,.7);
+        player.chest.push(sardine);
     }
     let startingAxe = new Tool('Stone Hatchet','axe',1,5);
     player.weightLoad += startingAxe.weight;
@@ -417,6 +460,9 @@ function collision(tile,map,x,y,id){
     }
     if(tile==="="){
         return {forge: true};
+    }
+    if(tile==="&"){
+        return {fire: true};
     }
 }
 // ***GAME CONTENT DATA BELOW***

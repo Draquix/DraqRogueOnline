@@ -229,6 +229,23 @@ function chestDisplay(){
     display.innerHTML = ' ';
     display.appendChild(inventory);
 }
+function cookingInterface(){
+    const display = document.querySelector("#char-display");
+    display.innerHTML = " ";
+    let message = document.createElement('p');
+    message.innerText = "You can cook your food on the fire to make it edible.  You are level "+ character.stats.cook;
+    display.appendChild(message);
+    for(var i in character.backpack){
+        if(character.backpack[i].raw===true){
+            let item = document.createElement('p');
+            item.innerHTML = `A raw ${character.backpack[i].name}. You can <a href="javascript:cookFood(${i})"> Cook </a> it.`;
+            display.appendChild(item);
+        }
+    }
+}
+function cookFood(num){
+    socket.emit('food on fire', {num:num});
+}
 function playerInventory(){
     const display = document.querySelector('#interactions');
     clearDisplay();
@@ -238,6 +255,11 @@ function playerInventory(){
     inventory.appendChild(title);
     for(i in character.backpack){
         let item = document.createElement('li');
+        if(character.backpack[i].raw===true){
+            item.innerHTML = `A raw ${character.backpack[i].name} weighing ${character.backpack[i].weight}.  <a href="javascript:putPack(${i})"> Store </a>`;
+        } else if (character.backpack[i].raw===false){
+            item.innerHTML = `A cooked ${character.backpack[i].name} weighing ${character.backpack[i].weight}.  <a href="javascript:putPack(${i})"> Store </a> <a href="javascript:eatFood(${i})"> Eat </a>`;
+        }
         item.innerHTML = character.backpack[i].name + ' .. wt: ' + character.backpack[i].weight + `<a href="javascript:putPack(${i})"> Store </a>`;
         inventory.appendChild(item);
     }
@@ -347,7 +369,18 @@ socket.on('Chest Bump', inv => {
 socket.on('Forge Bump', forge => {
     loadForge(forge.BumpPack[0]);
 });
-socket.on('forging', forge => {
+socket.on('Cookfire Bump', cook => {
+    playerInventory();
+    cookingInterface();
+});
+socket.on('cook success', message => {
+    let display = document.querySelector('#interactions');
+    let message = document.createElement('p');
+    message.innerHTML = message.message;
+    display.appendChild(message);
+    playerInventory();
+});
+socket.on('forging', forge =>{
     let display = document.querySelector('#interactions');
     let message = document.createElement('P');
     console.log('forging packet: ',forge.pack[0].message);
