@@ -229,12 +229,14 @@ function chestDisplay(){
     display.innerHTML = ' ';
     display.appendChild(inventory);
 }
-function cookingInterface(){
+function cookingInterface(msg){
+    console.log('msg: ',msg);
     const display = document.querySelector("#char-display");
     display.innerHTML = " ";
     let message = document.createElement('p');
-    message.innerText = "You can cook your food on the fire to make it edible.  You are level "+ character.stats.cook;
+    message.innerText = "You can cook your food on the fire to make it edible.  You are level "+ character.stats.cook + " cooking.";
     display.appendChild(message);
+    let successes = document.createElement('p');
     for(var i in character.backpack){
         if(character.backpack[i].raw===true){
             let item = document.createElement('p');
@@ -242,11 +244,39 @@ function cookingInterface(){
             display.appendChild(item);
         }
     }
+    successes.innerText += msg;
+    display.appendChild(successes);
 }
 function cookFood(num){
     socket.emit('food on fire', {num:num});
 }
 function playerInventory(){
+    const display = document.querySelector('#interactions');
+    clearDisplay();
+    const inventory = document.createElement("ul");
+    let title = document.createElement("li");
+    title.innerText = 'Backpack Contents:';
+    inventory.appendChild(title);
+    for(i in character.backpack){
+        let item = document.createElement('li');
+        if(character.backpack[i].tool===true){
+            item.innerHTML = `A ${character.backpack[i].name} weighing ${character.backpack[i].weight} kgs. <a href="javascript:wieldTool(${i})"> Wield </a>`;
+        }
+        if(character.backpack[i].raw===true){
+            item.innerHTML = `A raw ${character.backpack[i].name} weighing ${character.backpack[i].weight}. `;
+        } else if (character.backpack[i].raw===false){
+            item.innerHTML = `A cooked ${character.backpack[i].name} weighing ${character.backpack[i].weight}.  <a href="javascript:eatFood(${i})"> Eat </a> <a href="javascript:eatFood(${i})"> Eat </a>`;
+        } else {
+        item.innerHTML = character.backpack[i].name + ' .. wt: ' + character.backpack[i].weight;
+        }
+        inventory.appendChild(item);
+    }
+    let weightLimit = document.createElement('li');
+    weightLimit.innerText = character.weightLoad + 'kgs of total allowed load of ' + character.weightLimit;
+    inventory.appendChild(weightLimit);
+    display.appendChild(inventory);
+}
+function playerChestInventory(){
     const display = document.querySelector('#interactions');
     clearDisplay();
     const inventory = document.createElement("ul");
@@ -358,11 +388,13 @@ socket.on('Chest Bump', inv => {
     console.log('Chest Data Received: ', inv);
     character.chest = inv.BumpPack[0].chest;
     character.backpack = inv.BumpPack[0].pack;
-    if(inv.BumpPack[0].forgeFlag===false){
-        chestDisplay();
-        playerInventory();
-    }else{
+    if(inv.BumpPack[0].forgeFlag===true){
         loadForge(inv.BumpPack[0].forge);
+    }else if(inv.BumpPack[0].fireFlag===true){
+        cookingInterface(inv.BumpPack[0].message);
+    } else {
+        chestDisplay();
+        playerChestInventory();
     }
 
 });
@@ -371,15 +403,20 @@ socket.on('Forge Bump', forge => {
 });
 socket.on('Cookfire Bump', cook => {
     playerInventory();
-    cookingInterface();
+    cookingInterface('Cooking history:');
 });
-socket.on('cook success', message => {
-    let display = document.querySelector('#interactions');
-    let message = document.createElement('p');
-    message.innerHTML = message.message;
-    display.appendChild(message);
+socket.on('cook success', () => {
+    let display = document.querySelector('#char-display');
+    console.log('cook success');
+    let msg = document.createElement('p');
     playerInventory();
 });
+socket.on('cook failure', () => {
+    let display = document.querySelector("#char-display");
+    let msg = document.createElement('p');
+    console.log('cooking failure');
+    playerInventory();
+})
 socket.on('forging', forge =>{
     let display = document.querySelector('#interactions');
     let message = document.createElement('P');
@@ -415,6 +452,7 @@ socket.on('draw player', data => {
     }
 });
 document.onkeydown = function(event){
+    playerInventory();
     playerUp(character, localId.id);
     if(event.keyCode === 68)  //d
         socket.emit('key press',{inputDir:'right', state:true, id:localId});

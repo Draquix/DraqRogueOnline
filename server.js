@@ -160,15 +160,21 @@ io.on('connection', socket => {
     socket.on('food on fire', num => {
         player = PLAYER_LIST[socket.id];
         let food = player.backpack[num.num];
+        console.log(food);
         if(player.stats.cook>=food.base){
-            let skillcheck = Math.random - player.stats.cook*.01;
+            let skillcheck = Math.random() - player.stats.cook*.01;
+            console.log('skill checks: ', skillcheck, food.difficulty);
             if(skillcheck<food.difficulty){
                 food.raw=false;
-                socket.emit('cook success', {message:"You cooked it successfully!"});
+                player.BumpPack.message = "You cooked it successfully!";
+                socket.emit('cook success');
             } else {
-                player.backpack.splice(num.num,1);
-                socket.emit('cook failure', {message:"You burned the shit out of it!"});
+                delete player.backpack[num.num];
+                player.BumpPack.message = "You burned the shit out of it!";
+                socket.emit('cook failure',);
             }
+            player.fireBypass = true;
+            player.BumpFlag = 'Chest Bump';
         }
     });
     //this recieves input data from on a client's form and emits the message to all clients
@@ -262,9 +268,10 @@ setInterval(function() {
                     socket.emit('NPC Bump',{BumpPack, id: socket.id});
                 }
                 if(player.BumpFlag==='Chest Bump'){
-                    BumpPack.push({chest: player.chest, pack: player.backpack,forge:player.forge, forgeFlag:player.forgeBypass});
+                    BumpPack.push({chest: player.chest, pack: player.backpack,forge:player.forge, forgeFlag:player.forgeBypass, fireFlag:player.fireBypass});
                     player.BumpFlag = '';
                     player.forgeBypass = false;
+                    player.fireBypass = false;
                     let socket = SOCKET_LIST[i];
                     socket.emit('Chest Bump',{BumpPack, id: socket.id});
                 }
@@ -345,11 +352,13 @@ function Player (name, passphrase, id){
 }
 function Tool (name, type, level, weight){
     this.name = name;
+    this.tool = true;
     this.type = type;
     this.weight = weight;
     this.level = level;
 }
 function Ore (metal, purity, weight, base, difficulty){
+    this.tool = false;
     this.name = metal + ' ore';
     this.metal = metal;
     this.purity = purity;
@@ -358,6 +367,7 @@ function Ore (metal, purity, weight, base, difficulty){
     this.difficulty = difficulty;
 }
 function Bar(type,weight,base, difficulty){
+    this.tool = false;
     this.name = type + ' bar';
     this.type = type;
     this.weight = weight;
@@ -365,6 +375,7 @@ function Bar(type,weight,base, difficulty){
     this.difficulty = difficulty;
 }
 function Food( name, raw, health, weight, base, difficulty){
+    this.tool = false;
     this.name = name;
     this.raw = raw;
     this.health = health;
