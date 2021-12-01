@@ -97,6 +97,7 @@ io.on('connection', socket => {
                 player.BumpPack = collision(stepTile,player.map,player.xpos,player.ypos);
             }
         }
+        //a change
         if (data.inputDir==='down'){
             let stepTile = MapBox[player.map][player.ypos][player.xpos];
             player.tileTarget = stepTile;
