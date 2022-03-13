@@ -22,11 +22,27 @@ const love = 42;
 
 //global variables
 var localId;
+var maps =[];
 
 //Handshaking client server connection
 socket.on('handshaking', data => {
     console.log('handed up id: ', data.id);
     localId = data.id;
+    maps = data.maps;
+});
+socket.on('alert', data => {
+    alert(data.msg);
+});
+socket.on('msg', data => {
+    let post = document.createElement('p');
+    post.innerHTML = data.msg;
+    msgs.appendChild(post);
+});
+socket.on('player update', data => {
+    player = data;
+    console.log(data);
+    draw(maps[0]);
+    charDisplay();
 });
 
 let post = document.createElement('p');
@@ -44,7 +60,6 @@ function draw(map){
     ctx.clearRect(0,0,600,600)
     let tile = 18;
     let xpos = 1, ypos = 1;
-    let countP = 0, countC = 0;
     ctx.font = '18px Helvetica';
     for (let i = 0; i < map.length; i++){
         for (let j = 0; j < map[i].length; j++){
@@ -139,4 +154,19 @@ function draw(map){
             }
         }
     }
+}
+function charDisplay(){
+    let character = document.querySelector('#char-display');
+    let stats = document.createElement('p');
+    stats.innerHTML = player.name + " Statistics <BR> ";
+    stats.innerHTML += `Hitpoints: ${player.hp.lvl} / ${player.mHp}  |  Coins: ${player.coin} <BR>`;
+    stats.innerHTML += `Strength: ${player.str} | Dexterity: ${player.agi} | Defense: ${player.def} <BR>`;
+    stats.innerHTML += `Mining: ${player.mine} Xp/Tnl: ${player.mineXp} / ${player.mineTnl} | Forging: ${player.forge} Xp/Tnl: ${player.forgeXp} / ${player.forgeTnl} <BR>`;
+    stats.innerHTML += `Woodcutting: ${player.chop} Xp/Tnl: ${player.chopXp} / ${chopTnl} | Crafting: ${player.craft} Xp/Tnl: ${player.craftXp} / ${player.craftTnl} <BR>`;
+    stats.innerHTML += `Fishing: ${player.fish} Xp/Tnl: ${player.fishXp} / ${player.fishTnl} | Cooking: ${player.cook} Xp/Tnl: ${player.cookXp} / ${player.cookTnl} <BR>`;
+    stats.innerHTML += `Carrying ${player.kg} kgs out of possible ${player.maxKg}. <BR>`;
+    stats.innerHTML += `Player is currently ${player.doing}. <BR>`;
+    stats.innerHTML += `<a href="javascript:invDisplay();"> Show Inventory </a><BR>`;
+    stats.innerHTML += `<a href="javascript:equipDisplay();"> Show Equipment </a>`;
+    character.appendChild(stats);
 }

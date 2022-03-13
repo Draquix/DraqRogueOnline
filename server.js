@@ -28,12 +28,13 @@ io.on('connection', socket => {
 
     socket.on('login', user => {
         console.log('attempting login of: ',user);
+        var player = {};
         db.player.find({name:user.name}, (err,res) =>{
-            console.log(err);
+            //console.log(err);
             if(res.length>0){
                if(res[0].passphrase==user.phrase){
                     console.log('successfull login');
-                    pc.loginPlayer(user.name);
+                    player = pc.loginPlayer(user.name);
                } else {
                    console.log('wrong password');
                    socket.emit('alert',{msg:"That name is taken but you have the wrong passphrase."});
@@ -41,7 +42,12 @@ io.on('connection', socket => {
             }
             console.log('new user');
             player = new pc.Player(user.name,user.phrase,socket.id);
+            player.init();
             pc.savePlayer(player);
+            //console.log(player);
+            console.log(player);
+            socket.emit('player update',player);
+
         });
     });
 });
