@@ -12,8 +12,10 @@
     overflow:scroll;
     scroll-behavior: auto;
     scroll-behavior: smooth;
-
-
+}
+#chatbox {
+    color:red;
+    width:1000px;
 }
 #game {
     border:2px solid purple;
