@@ -6,11 +6,6 @@ const username = document.querySelector('#name');
 const passphrase = document.querySelector('#passphrase');
 const login = document.querySelector('.login-form');
 const entry = document.querySelector('#chatbox');
-//Event listener for login form submit
-login.addEventListener('submit', e => {
-    e.preventDefault();
-    socket.emit('login', {name: username.value, phrase: passphrase.value} );
-});
 
 //elements
 const msgs = document.querySelector('#msgs');
@@ -20,9 +15,18 @@ let canvas = document.getElementById('game');
 let ctx = canvas.getContext('2d');
 const love = 42;
 
-//global variables
+// client's local global variables
 var localId=0;
 var maps =[];
+var localTickOn=0;
+var homeTick=0;
+
+//Event listener for login form submit
+login.addEventListener('submit', e => {
+    homeTick = 0;
+    e.preventDefault();
+    socket.emit('login', {name: username.value, phrase: passphrase.value} );
+});
 
 //Message chatting feature handler
 entry.addEventListener('submit', e => {
@@ -34,10 +38,12 @@ entry.addEventListener('submit', e => {
 
 //Handshaking client server connection
 socket.on('handshaking', data => {
-    console.log('handed up id: ', data.id);
+    console.log('handed up id: ', data.id,data.tick);
+    localTickOn = data.tick;
     localId = data.id;
     maps = data.maps;
     console.log(maps);
+
 });
 socket.on('alert', data => {
     console.log('alerting ',data);
@@ -46,7 +52,8 @@ socket.on('alert', data => {
 socket.on('msg', data => {
     console.log('message coming, ',data);
     let post = document.createElement('li');
-    post.innerHTML = data.msg;
+    post.innerText = data.msg;
+    console.log('innerhtml: ',post);
     msgs.appendChild(post);
 });
 socket.on('player update', data => {
@@ -217,23 +224,114 @@ function equipDisplay(){
     }
 }
 socket.on('Tick', data =>{
+    homeTick++;
+    if(homeTick%200===0){
+        let post = document.createElement('li');
+        post.innerText = "You've been logged on for "+homeTick+" ticks...";
+        msgs.appendChild(post);
+    }
     draw(maps.mapArr);
+    let syncTick = data[0].tick;
+    if(syncTick%40===0){
+        console.log("server at ",data[0].tick," ticks...");
+    }
     player.xpos = data[0].xpos;
     player.ypos = data[0].ypos;
     // console.log('tick data',data);
     var map = maps.mapArr;
     var space=map[player.ypos][player.xpos];
-     console.log(space, player.xpos, player.ypos);
+    //  console.log(space, player.xpos, player.ypos);
     ctx.fillStyle="white";
     ctx.fillText("C",(player.xpos)*18,(player.ypos+1)*18);
 });
+function converse(NPC,flow){
+    action.innerHTML =" ";
+    console.log('npc: ', NPC);
+    const NPCname = document.createElement('p');
+    NPCname.innerText = NPC.name;
+    action.appendChild(NPCname);
+    let message = document.createElement('p');
+    message.innerText = NPC.conversations[flow].message;
+    action.appendChild(message);
+    for ( i in NPC.conversations[flow].choice){
+        let btn = document.createElement('button');
+        btn.innerText = NPC.conversations[flow].choice[i];
+        let trigger = NPC.conversations[flow].answerI[i];
+        let NPCcopy = NPC;
+        btn.onclick = function () {
+            converse(NPCcopy,trigger);
+        }
+        action.appendChild(btn);
+    }
+}
+function itemDisplay(item){
+    action.innerHTML = " ";
+    console.log('Displaying item: ',item);
+    let disp = document.createElement('p');
+    disp.innerHTML = item.name;
+    disp.innerHTML += `<br> Of type: ${item.type} with a level requirement to use of ${item.req}.`;
+    if(item.stackable){
+        disp.innerHTML += "<br> These materials can be stacked.";
+    } else {
+        disp.innerHTML += "<br> This item cannot be stacked.";
+    }
+    if(item.purity){
+        disp.innerHTML += `<br> This ore is ${item.purity*100}% pure.`;
+    }
+    disp.innerHTML += `<br> Weight: ${item.kg}`;
+    action.appendChild(disp);
+}
+function storage(){
+    action.innerHTML = "Contents of your Storage Chest: <br>";
+    charDisplay();
+    for(i in player.chest){
+        let thing = document.createElement('p');
+        thing.innerHTML = player.chest[i].name + `<a href="javascript:takeChest(${i});"> take </a>`
+        action.appendChild(thing);
+    }
+}
+function takeChest(num){
+    let item = player.chest[num];
+    itemDisplay(item);
+    player.chest.splice(num,1);
+    socket.emit('chest to inv',{data:num});
+    console.log("trying get this item: ",item);
+    storage();
+}
+function putChest(num){
+    let item = player.backpack[num];
+    player.chest.push(item);
+    itemDisplay(item);
+    if(player.gear.tool.length>0&&item.name===player.gear.tool[0].name){
+        player.gear.tool.pop();
+    } else {
+        player.backpack.splice(num,1);
+    }
+    socket.emit('inv to chest',{data:num});
+    // console.log(player.chest);
+    storage();
+}
 socket.on('poi', poi => {
-    console.log(poi);
+    // console.log(poi.poi.msg);
     action.innerHTML = " ";
     let post = document.createElement('p');
-    post.innerHTML = poi.str.msg;
-    action.appendChild(post); 
-})
+    post.innerHTML = poi.poi.msg;
+    action.appendChild(post);
+    let msg = document.createElement('li'); 
+    msg.innerText = "PoI:: " + poi.poi.msg;
+    msgs.appendChild(msg);
+});
+socket.on('npc', npc => {
+    converse(npc,0);
+    console.log(npc);
+});
+socket.on('node', node => {
+    console.log(node);
+});
+socket.on('chest' ,()=> {
+    storage();
+});
+
 document.onkeydown = function(event){
     player.doing = 'Nothing';
     var map = maps.mapArr;

@@ -24,7 +24,7 @@ io.on('connection', socket => {
     console.log('a client has connected');
     socket.id = Math.random();
     SOCKET_LIST[socket.id] = socket;
-    socket.emit('handshaking', {id:socket.id,maps});
+    socket.emit('handshaking', {id:socket.id,maps,tick:ticker});
     socket.on('chat', data => {
         io.emit('msg', data);
     });
@@ -65,7 +65,19 @@ io.on('connection', socket => {
             PLAYER_LIST[socket.id].gear.tool.push(item);
         }
         PLAYER_LIST[socket.id].backpack.slice(data.index);
-
+        socket.emit('player update', PLAYER_LIST[socket.id]);
+    });
+    socket.on('chest to inv', data => {
+        let item = PLAYER_LIST[socket.id].chest[data.num];
+        console.log('chest to inv',item);
+        PLAYER_LIST[socket.id].backpack.push(item);
+        PLAYER_LIST[socket.id].chest.slice(data.num,1);
+        socket.emit('player update', PLAYER_LIST[socket.id]);
+    });
+    socket.on('inv to chest', data => {
+        let item = PLAYER_LIST[socket.id].backpack[data.num];
+        PLAYER_LIST[socket.id].chest.push(item);
+        PLAYER_LIST[socket.id].backpack.slice(data.num,1);
         socket.emit('player update', PLAYER_LIST[socket.id]);
     });
     socket.on('key press', data => {
@@ -81,12 +93,38 @@ io.on('connection', socket => {
 });
 //Collision for map interaction
 function collision(id,x,y,targ){
+    socket = SOCKET_LIST[id];
     if(targ==="1"||targ==="2"||targ==="3"||targ==="4"||targ==="5"||targ==="6"){
         let poi = maps.PoIcheck(targ);
-        socket = SOCKET_LIST[id];
-        socket.emit('poi',{str:poi});
+        socket.emit('poi',{poi});
+    } else if (targ==="P"){
+            if(x==3||y==4){
+                var npc = nod.NPCBox[0];
+            } else if (x==6||y==7){
+                var npc = nod.NPCBox[1];
+            }
+            // next to bracket above ->// else if (x>12||y>10){
+            //     let npc = nod.NPCBox[2];
+            // }
+        socket.emit('npc',npc);
+    } else if (targ==="%"){
+        socket.emit('chest');
+    } else if (targ==="c"||targ==="t"||targ==="i"){
+        let node = nod.getNode(targ);
+        PLAYER_LIST[id].doFlag="mining";
+        PLAYER_LIST[id].data = node;
+        socket.emit("node",node);
+    } else if (targ==="T"||targ==="O"){
+        let node = nod.getNode(targ);
+        PLAYER_LIST[id].doFlag="woodchopping";
+        PLAYER_LIST[id].data=node;      
+        socket.emit("node",node);
+    } else if (targ==="!"){
+        console.log('not implemented yet.');
     }
-    console.log('collision target: ',targ);
+    
+    
+    console.log('collision target: ',x,y,targ);
 }
 //Async runtime for live gameplay
 let ticker = 0;
@@ -100,7 +138,8 @@ setInterval( function () {
         pack.push({
             xpos:PLAYER_LIST[i].xpos,
             ypos:PLAYER_LIST[i].ypos,
-            id:PLAYER_LIST[i].id       
+            id:PLAYER_LIST[i].id,
+            tick:ticker 
          });
         let socket = SOCKET_LIST[i];
         socket.emit('Tick',pack);
