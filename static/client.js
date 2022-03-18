@@ -194,7 +194,7 @@ function charDisplay(){
     character.appendChild(stats);
     item = document.createElement('P');
     for(i in player.backpack){
-        item.innerHTML += `A ${player.backpack[i].name} weighing ${player.backpack[i].kg} kgs `
+        item.innerHTML += `A ${player.backpack[i].name}- ${player.backpack[i].kg} kgs `
         if(player.backpack[i].type==="tool"){
             item.innerHTML += ` <a href="javascript:equip(${i});"> Equip </a>, `;
         } else if(player.backpack[i].stackable===true){
@@ -231,18 +231,24 @@ socket.on('Tick', data =>{
         msgs.appendChild(post);
     }
     draw(maps.mapArr);
-    let syncTick = data[0].tick;
+    if(data){
+        var syncTick = data[0].tick;
+    }
     if(syncTick%40===0){
         console.log("server at ",data[0].tick," ticks...");
     }
-    player.xpos = data[0].xpos;
-    player.ypos = data[0].ypos;
-    // console.log('tick data',data);
-    var map = maps.mapArr;
-    var space=map[player.ypos][player.xpos];
-    //  console.log(space, player.xpos, player.ypos);
-    ctx.fillStyle="white";
-    ctx.fillText("C",(player.xpos)*18,(player.ypos+1)*18);
+    // console.log(localId,data);
+    for(i in data){
+        if(data[i].id===localId){
+            ctx.fillStyle="yellow";
+            player.xpos = data[i].xpos;
+            player.ypos = data[i].ypos;
+            ctx.fillText("C",(player.xpos)*18,(player.ypos+1)*18);
+        } else {
+            ctx.fillStyle="white";
+            ctx.fillText("C",data[i].xpos*18,(data[i].ypos+1)*18);
+        }
+    }
 });
 function converse(NPC,flow){
     action.innerHTML =" ";
@@ -325,8 +331,21 @@ socket.on('npc', npc => {
     converse(npc,0);
     console.log(npc);
 });
-socket.on('node', node => {
-    console.log(node);
+socket.on('node',data => {
+    console.log("node displaying",data);
+    action.innerHTML = " ";
+    let node = document.createElement('p');
+    node.innerHTML = data.name;
+    node.innerHTML += `<br> Level requirement: ${data.req}`;
+    node.innerHTML += `<br> Success rate: ${data.baseDiff*100}% plus 1% per level in this skill. `;
+    node.innerHTML += `<br> Xp awarded per success: ${data.xp}`;
+    if(data.trunk){
+        node.innerHTML += `<br> It takes ${data.trunk} successful swings to harvest a log.`;
+    }
+    if(data.lowest){
+        node.innerHTML += `<br> The quality of the ore ranges from ${data.lowest*100} - ${data.highest*100}%.`
+    }
+    action.appendChild(node);
 });
 socket.on('chest' ,()=> {
     storage();

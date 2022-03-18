@@ -126,7 +126,7 @@ function collision(id,x,y,targ){
     
     console.log('collision target: ',x,y,targ);
 }
-//Async runtime for live gameplay
+//Async runtime for live gameplay -- first for update screen and draw player
 let ticker = 0;
 setInterval( function () {
     ticker++;
@@ -141,10 +141,53 @@ setInterval( function () {
             id:PLAYER_LIST[i].id,
             tick:ticker 
          });
-        let socket = SOCKET_LIST[i];
-        socket.emit('Tick',pack);
     }
+    io.emit('Tick',pack);
 },200);
+
+setInterval( function () {
+    
+    for(i in PLAYER_LIST){
+        var socket = SOCKET_LIST[PLAYER_LIST[i].id]
+        if(!(PLAYER_LIST[i].doFlag==="nothing")){
+            if(PLAYER_LIST[i].doFlag==="mining"){
+                if(PLAYER_LIST[i].gear.tool.length>0 && PLAYER_LIST[i].gear.tool[0].skill==="mine"){
+                    if(PLAYER_LIST[i].mine>=PLAYER_LIST[i].data.req){
+                        let rng = Math.random();
+                        let skill = (PLAYER_LIST[i].mine/100)+PLAYER_LIST[i].data.baseDiff+(PLAYER_LIST[i].gear.tool[0].bonus/100);
+                        console.log("mining away with ",rng," as rng and ",skill," as modified success...");
+                        if(rng<skill){
+                            let success = PLAYER_LIST[i].data.onSuccess();
+                            PLAYER_LIST[i].mineXp += success[1];
+                            if(PLAYER_LIST[i].liftable(success[0])){
+                                PLAYER_LIST[i].backpack.push(success[0]);
+                                PLAYER_LIST[i].kg+= success[0].kg;
+                                socket.emit('msg',{msg:`You successfully mine a chunk of ${success[0].name} with a purity of ${success[0].purity}, weighing ${success[0].kg} and gain${success[1]} xp.`});
+                                if(PLAYER_LIST[i].mineXp>=PLAYER_LIST[i].mineTnl){
+                                    PLAYER_LIST[i].mine++;
+                                    PLAYER_LIST[i].mineTnl =40*PLAYER_LIST[i].mine*1.2;
+                                    socket.emit('msg',{msg:`Your mining level has increased to ${PLAYER_LIST[i].mine}!`});
+                                }
+                                socket.emit('player update', PLAYER_LIST[i]);
+                            } else {
+                                PLAYER_LIST[i].doFlag="nothing";
+                                PLAYER_LIST[i].data = {};
+                                socket.emit('msg',{msg:"You cannot hold any more items."});
+                            }                        }
+                    }else{
+                        PLAYER_LIST[i].doFlag="nothing";
+                        PLAYER_LIST[i].data = {};
+                        socket.emit('msg',{msg:"You do not have the appropriate skill level to mine here."});
+                    }
+                } else {
+                    PLAYER_LIST[i].doFlag="nothing";
+                    PLAYER_LIST[i].data = {};
+                    socket.emit('msg',{msg:"You do not have a pickaxe equipped for mining."});
+                }
+            }
+        }
+    }
+},3000);
 
 
 //With all the files loaded, the below statement causes the server to boot up and listen for client connect
