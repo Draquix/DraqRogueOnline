@@ -45,10 +45,12 @@ socket.on('handshaking', data => {
     console.log(maps);
 
 });
+//popup alerts from server
 socket.on('alert', data => {
     console.log('alerting ',data);
     alert(data.msg);
 });
+//scrolling message window from server
 socket.on('msg', data => {
     console.log('message coming, ',data);
     let post = document.createElement('li');
@@ -56,13 +58,17 @@ socket.on('msg', data => {
     console.log('innerhtml: ',post);
     msgs.appendChild(post);
 });
+//recieves character data from server
 socket.on('player update', data => {
-    player = data;
+    player = data.player;
     draw(maps.mapArr);
-    charDisplay();
+    if(data.atChest){
+        charDisplay(true);
+    } else {
+        charDisplay();
+    }
 });
-
-
+//initializes the client
 let post = document.createElement('p');
 post.innerText = "display loaded";
 display.appendChild(post);
@@ -73,7 +79,7 @@ var player={
     xpos:1,
     ypos:1
 }
-
+//draw map function
 function draw(map){
     ctx.clearRect(0,0,600,600)
     let tile = 18;
@@ -172,12 +178,13 @@ function draw(map){
         }
     }
 }
-function charDisplay(){
+//character display
+function charDisplay(atChest){
     let character = document.querySelector('#display');
     character.innerHTML = " ";
     let stats = document.createElement('p');
     stats.innerHTML = player.name + " Statistics <BR> ";
-    stats.innerHTML += `Hitpoints: ${player.hp.lvl} / ${player.mHp}  |  Coins: ${player.coin} <BR>`;
+    stats.innerHTML += `Hitpoints: ${player.hp} / ${player.mHp}  |  Coins: ${player.coin} <BR>`;
     stats.innerHTML += `Strength: ${player.str} | Dexterity: ${player.agi} | Defense: ${player.def} <BR>`;
     stats.innerHTML += `Mining: ${player.mine} Xp/Tnl: ${player.mineXp} / ${player.mineTnl} | Forging: ${player.forge} Xp/Tnl: ${player.forgeXp} / ${player.forgeTnl} <BR>`;
     stats.innerHTML += `Woodcutting: ${player.chop} Xp/Tnl: ${player.chopXp} / ${player.chopTnl} | Crafting: ${player.craft} Xp/Tnl: ${player.craftXp} / ${player.craftTnl} <BR>`;
@@ -193,36 +200,163 @@ function charDisplay(){
     stats.innerHTML += "Currently carrying in backpack: ";
     character.appendChild(stats);
     item = document.createElement('P');
-    for(i in player.backpack){
-        item.innerHTML += `A ${player.backpack[i].name}- ${player.backpack[i].kg} kgs `
-        if(player.backpack[i].type==="tool"){
-            item.innerHTML += ` <a href="javascript:equip(${i});"> Equip </a>, `;
-        } else if(player.backpack[i].stackable===true){
-            item.innerHTML += ` <a href="javascript:stack(${i});"> Stack </a>,`;
-        } else {
-            item.innerHTML += `, `;
+    if(atChest){
+        for(i in player.backpack){
+            item.innerHTML += `A ${player.backpack[i].name} - ${player.backpack[i].kg} kgs <a href="javascript:putChest(${i});"> store </a> `;
+        }
+    } else {
+        for(i in player.backpack){
+            item.innerHTML += `A ${player.backpack[i].name}- ${player.backpack[i].kg} kgs `
+            if(player.backpack[i].type==="tool"){
+                item.innerHTML += ` <a href="javascript:equip(${i});"> Equip </a>, `;
+            } else if(player.backpack[i].stackable===true){
+                item.innerHTML += ` <a href="javascript:stackThis('${player.backpack[i].name}');"> stack </a>,`;
+            } else if(player.backpack[i].type==="stack"){
+                item.innerHTML += ` <a href="javascript:unstack(${i});"> unstack </a>,`
+            } else {
+                item.innerHTML += `, `;
+            }
         }
     }
     character.appendChild(item);
 }
-function equip(num){
-    let item = player.backpack[num];
-    player.backpack.slice(num,1);
-    player.gear.tool.push(item);
-    socket.emit('equip',{index:num});
-}
-
+//inventory handling functions
 function equipDisplay(){
     action.innerHTML = "";
     for (const key in player.gear){
         let item = document.createElement('p');
-        if(player.gear[key].length)
-            item.innerHTML = `${key}: A ${player.gear[key]}`;
-        else
+        // console.log(player.gear[key],key);
+        if(player.gear[key].length){
+            var gear = player.gear[key][0];
+            item.innerHTML = `${key}: A ${gear.name} `;
+            let btn = document.createElement('button');
+            btn.innerText = "info";
+            btn.onclick = function () {
+                itemDisplay(gear);
+            }
+            item.appendChild(btn);
+            let btn2 = document.createElement('button');
+            btn2.innerText = "unequip";
+            btn2.onclick = function(){
+                unequip(key);
+            }
+            item.appendChild(btn2);
+        } else{
             item.innerHTML = `${key}: nothing.`;
+        }
         action.appendChild(item);
     }
 }
+function equip(num){
+    let item = player.backpack[num];
+    player.backpack.splice(num,1);
+    if(item.type==="tool"){
+        if(player.gear.tool.length>0){
+            let removed = player.gear.tool[0];
+            player.gear.tool.pop();
+            player.backpack.push(removed);
+        }
+        player.gear.tool.push(item);
+    }
+    // console.log('backpack after equip',player.backpack);
+    socket.emit('equip',{index:num});
+}
+function unequip(key){
+    console.log(key);
+    let item = player.gear[key][0];
+    console.log('unequipping:',item);
+    player.gear[key].pop();
+    player.backpack.push(item);
+    socket.emit('unequip',{key:key});
+    equipDisplay();
+    charDisplay();
+}
+function storage(){
+    action.innerHTML = "Contents of your Storage Chest: <br>";
+    charDisplay(true);
+    for(i in player.chest){
+        let thing = document.createElement('p');
+        thing.innerHTML = player.chest[i].name + `<a href="javascript:takeChest(${i});"> take </a>`
+        action.appendChild(thing);
+    }
+}
+function takeChest(num){
+    let item = player.chest[num];
+    // itemDisplay(item);
+    player.chest.splice(num,1);
+    socket.emit('chest to inv',{data:num});
+    console.log("trying get this item: ",item);
+    console.log(player.chest);
+    storage();
+}
+function putChest(num){
+    let item = player.backpack[num];
+    player.chest.push(item);
+    // itemDisplay(item);
+    if(player.gear.tool.length>0&&item.name===player.gear.tool[0].name){
+        player.gear.tool.pop();
+    } else {
+        player.backpack.splice(num,1);
+    }
+    socket.emit('inv to chest',{data:num});
+    console.log(player.chest);
+    storage();
+}
+function itemDisplay(item){
+    console.log('displaying');
+    action.innerHTML = " ";
+    console.log('Displaying item: ',item);
+    let disp = document.createElement('p');
+    disp.innerHTML = item.name;
+    disp.innerHTML += `<br> Of type: ${item.type} with a level requirement to use of ${item.req}.`;
+    if(item.stackable){
+        disp.innerHTML += "<br> These materials can be stacked.";
+    } else {
+        disp.innerHTML += "<br> This item cannot be stacked.";
+    }
+    if(item.purity){
+        disp.innerHTML += `<br> This ore is ${item.purity*100}% pure.`;
+    }
+    disp.innerHTML += `<br> Weight: ${item.kg}`;
+    action.appendChild(disp);
+}
+function unstack(num){
+    stack = player.backpack[num];
+    socket.emit('unstack',{stack,num:num});
+    player.backpack.splice(num,1);
+    for(i in stack.pack){
+        player.backpack.push(stack.pack[i]);
+    }
+    action.innerHTML = " ";
+}
+function stackThis(itemName){
+    console.log('stacking item: ',itemName);
+    let msg = document.createElement('p');
+    msg.innerHTML = `You stack together all the ${itemName}'s you have.`;
+    let pack = player.backpack;
+    let stack = {
+        name:"stacked " + itemName,
+        type:"stack",
+        pack:[],
+        quantity:0,
+        kg:0,
+    };
+    let targetSplice = [];
+    for(i in pack){
+        // console.log("item i",pack[i]);
+        if(pack[i].name===itemName){
+            targetSplice.push(i);
+            stack.kg+=pack[i].kg;
+            stack.quantity++;
+            stack.pack.push(pack[i]);
+        }
+    }
+    // console.log(stack);
+    msgs.appendChild(msg);
+    itemDisplay(stack);
+    socket.emit('stackpack',{stack,del:targetSplice});
+}
+//recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
     homeTick++;
     if(homeTick%200===0){
@@ -231,7 +365,7 @@ socket.on('Tick', data =>{
         msgs.appendChild(post);
     }
     draw(maps.mapArr);
-    if(data){
+    if(data.length>0){
         var syncTick = data[0].tick;
     }
     if(syncTick%40===0){
@@ -250,6 +384,7 @@ socket.on('Tick', data =>{
         }
     }
 });
+//conversation with NPCs
 function converse(NPC,flow){
     action.innerHTML =" ";
     console.log('npc: ', NPC);
@@ -270,53 +405,7 @@ function converse(NPC,flow){
         action.appendChild(btn);
     }
 }
-function itemDisplay(item){
-    action.innerHTML = " ";
-    console.log('Displaying item: ',item);
-    let disp = document.createElement('p');
-    disp.innerHTML = item.name;
-    disp.innerHTML += `<br> Of type: ${item.type} with a level requirement to use of ${item.req}.`;
-    if(item.stackable){
-        disp.innerHTML += "<br> These materials can be stacked.";
-    } else {
-        disp.innerHTML += "<br> This item cannot be stacked.";
-    }
-    if(item.purity){
-        disp.innerHTML += `<br> This ore is ${item.purity*100}% pure.`;
-    }
-    disp.innerHTML += `<br> Weight: ${item.kg}`;
-    action.appendChild(disp);
-}
-function storage(){
-    action.innerHTML = "Contents of your Storage Chest: <br>";
-    charDisplay();
-    for(i in player.chest){
-        let thing = document.createElement('p');
-        thing.innerHTML = player.chest[i].name + `<a href="javascript:takeChest(${i});"> take </a>`
-        action.appendChild(thing);
-    }
-}
-function takeChest(num){
-    let item = player.chest[num];
-    itemDisplay(item);
-    player.chest.splice(num,1);
-    socket.emit('chest to inv',{data:num});
-    console.log("trying get this item: ",item);
-    storage();
-}
-function putChest(num){
-    let item = player.backpack[num];
-    player.chest.push(item);
-    itemDisplay(item);
-    if(player.gear.tool.length>0&&item.name===player.gear.tool[0].name){
-        player.gear.tool.pop();
-    } else {
-        player.backpack.splice(num,1);
-    }
-    socket.emit('inv to chest',{data:num});
-    // console.log(player.chest);
-    storage();
-}
+//Point of Interest display from server
 socket.on('poi', poi => {
     // console.log(poi.poi.msg);
     action.innerHTML = " ";
@@ -327,6 +416,7 @@ socket.on('poi', poi => {
     msg.innerText = "PoI:: " + poi.poi.msg;
     msgs.appendChild(msg);
 });
+//server reception of objects
 socket.on('npc', npc => {
     converse(npc,0);
     console.log(npc);
@@ -350,11 +440,12 @@ socket.on('node',data => {
 socket.on('chest' ,()=> {
     storage();
 });
-
+//Keyboard reading controls for player movement
 document.onkeydown = function(event){
     player.doing = 'Nothing';
     var map = maps.mapArr;
     let space = map[player.ypos][player.xpos];
+    charDisplay();
     if(localId===0){
         return;}else{
     if(event.keyCode === 68){  //d

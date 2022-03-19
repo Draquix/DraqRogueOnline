@@ -55,33 +55,64 @@ io.on('connection', socket => {
             // console.log(player);
 
             PLAYER_LIST[socket.id] = player;
-            socket.emit('player update',player);
+            socket.emit('player update',{player:player});
             // console.log('Player list obj:',PLAYER_LIST[socket.id].backpack);
         });
     socket.on('equip', data => {
         var item = PLAYER_LIST[socket.id].backpack[data.index];
         console.log('trying to equip: ',item);
         if(item.type==="tool"){
+            if(PLAYER_LIST[socket.id].gear.tool.length>0){
+                let removed = PLAYER_LIST[socket.id].gear.tool[0];
+                PLAYER_LIST[socket.id].gear.tool.pop();
+                PLAYER_LIST[socket.id].backpack.push(removed);
+            }
             PLAYER_LIST[socket.id].gear.tool.push(item);
         }
-        PLAYER_LIST[socket.id].backpack.slice(data.index);
-        socket.emit('player update', PLAYER_LIST[socket.id]);
+        PLAYER_LIST[socket.id].backpack.splice(data.index,1);
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update', {player,atChest:false});
+    });
+    socket.on('unequip', data => {
+        console.log('unequip from slot: ',data.key);
     });
     socket.on('chest to inv', data => {
-        let item = PLAYER_LIST[socket.id].chest[data.num];
+        console.log('data',data.data);
+        let item = PLAYER_LIST[socket.id].chest[data.data];
         console.log('chest to inv',item);
         PLAYER_LIST[socket.id].backpack.push(item);
-        PLAYER_LIST[socket.id].chest.slice(data.num,1);
-        socket.emit('player update', PLAYER_LIST[socket.id]);
+        PLAYER_LIST[socket.id].chest.splice(data.data,1);
+        socket.emit('player update', {player:PLAYER_LIST[socket.id],atChest:true});
     });
     socket.on('inv to chest', data => {
-        let item = PLAYER_LIST[socket.id].backpack[data.num];
+        let item = PLAYER_LIST[socket.id].backpack[data.data];
         PLAYER_LIST[socket.id].chest.push(item);
-        PLAYER_LIST[socket.id].backpack.slice(data.num,1);
-        socket.emit('player update', PLAYER_LIST[socket.id]);
+        PLAYER_LIST[socket.id].backpack.splice(data.data,1);
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update', {player,atChest:true});
+    });
+    socket.on('stackpack', data=> {
+        console.log('stacked pack from above: ',data);
+        let player = PLAYER_LIST[socket.id];
+        for(var i = data.del.length;i>0;i--){
+            player.backpack.splice(data.del[i-1],1);
+        }
+        player.backpack.push(data.stack);
+        // console.log(player.backpack);
+        socket.emit('player update',{player,atChest:false});
+    });
+    socket.on('unstack', data =>{
+        console.log('unstacking: ',data.stack)
+        PLAYER_LIST[socket.id].backpack.splice(data.num,1);
+        for(i in data.stack.pack){
+            PLAYER_LIST[socket.id].backpack.push(data.stack.pack[i]);
+        }
+        let player = PLAYER_LIST[socket.id];
+        console.log('after unstack',player);
+        socket.emit('player update',{player,atChest:false});
     });
     socket.on('key press', data => {
-        console.log('Key fired: ',data);
+        // console.log('Key fired: ',data);
         var player = PLAYER_LIST[data.id];
         if(data.target===","||data.target==="."||data.target==="+"||data.target===";"){
             player.move(data.inputDir);
