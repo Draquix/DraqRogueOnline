@@ -24,7 +24,8 @@ io.on('connection', socket => {
     console.log('a client has connected');
     socket.id = Math.random();
     SOCKET_LIST[socket.id] = socket;
-    socket.emit('handshaking', {id:socket.id,maps,tick:ticker});
+    let forge = nod.forge;
+    socket.emit('handshaking', {id:socket.id,maps,tick:ticker,forge});
     socket.on('chat', data => {
         io.emit('msg', data);
     });
@@ -74,18 +75,26 @@ io.on('connection', socket => {
         socket.emit('player update', {player,atChest:false});
     });
     socket.on('unequip', data => {
-        console.log('unequip from slot: ',data.key);
+        let item = PLAYER_LIST[socket.id].gear[data.key][0];
+        console.log(item);
+        PLAYER_LIST[socket.id].gear[data.key].pop();
+        PLAYER_LIST[socket.id].backpack.push(item);
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update', {player,atChest:false});
     });
     socket.on('chest to inv', data => {
         console.log('data',data.data);
         let item = PLAYER_LIST[socket.id].chest[data.data];
-        console.log('chest to inv',item);
-        PLAYER_LIST[socket.id].backpack.push(item);
-        PLAYER_LIST[socket.id].chest.splice(data.data,1);
+        if(PLAYER_LIST[socket.id].liftable(item)){
+            PLAYER_LIST[socket.id].kg += item.kg;
+            PLAYER_LIST[socket.id].backpack.push(item);
+            PLAYER_LIST[socket.id].chest.splice(data.data,1);
+        }
         socket.emit('player update', {player:PLAYER_LIST[socket.id],atChest:true});
     });
     socket.on('inv to chest', data => {
         let item = PLAYER_LIST[socket.id].backpack[data.data];
+        PLAYER_LIST[socket.id].kg -= item.kg;
         PLAYER_LIST[socket.id].chest.push(item);
         PLAYER_LIST[socket.id].backpack.splice(data.data,1);
         let player = PLAYER_LIST[socket.id];
@@ -152,6 +161,8 @@ function collision(id,x,y,targ){
         socket.emit("node",node);
     } else if (targ==="!"){
         console.log('not implemented yet.');
+    } else if (targ==="="){
+        socket.emit('forge');
     }
     
     
@@ -199,7 +210,7 @@ setInterval( function () {
                                     PLAYER_LIST[i].mineTnl =40*PLAYER_LIST[i].mine*1.2;
                                     socket.emit('msg',{msg:`Your mining level has increased to ${PLAYER_LIST[i].mine}!`});
                                 }
-                                socket.emit('player update', PLAYER_LIST[i]);
+                                socket.emit('player update', {player:PLAYER_LIST[i],atChest:false});
                             } else {
                                 PLAYER_LIST[i].doFlag="nothing";
                                 PLAYER_LIST[i].data = {};

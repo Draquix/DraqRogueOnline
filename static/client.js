@@ -20,6 +20,7 @@ var localId=0;
 var maps =[];
 var localTickOn=0;
 var homeTick=0;
+var forge={};
 
 //Event listener for login form submit
 login.addEventListener('submit', e => {
@@ -42,6 +43,7 @@ socket.on('handshaking', data => {
     localTickOn = data.tick;
     localId = data.id;
     maps = data.maps;
+    forge = data.forge;
     console.log(maps);
 
 });
@@ -52,11 +54,11 @@ socket.on('alert', data => {
 });
 //scrolling message window from server
 socket.on('msg', data => {
-    console.log('message coming, ',data);
     let post = document.createElement('li');
     post.innerText = data.msg;
-    console.log('innerhtml: ',post);
+    // console.log('innerhtml: ',post);
     msgs.appendChild(post);
+    msgs.scrollTop = msgs.scrollHeight;
 });
 //recieves character data from server
 socket.on('player update', data => {
@@ -259,6 +261,7 @@ function equip(num){
         player.gear.tool.push(item);
     }
     // console.log('backpack after equip',player.backpack);
+    equipDisplay();
     socket.emit('equip',{index:num});
 }
 function unequip(key){
@@ -269,7 +272,6 @@ function unequip(key){
     player.backpack.push(item);
     socket.emit('unequip',{key:key});
     equipDisplay();
-    charDisplay();
 }
 function storage(){
     action.innerHTML = "Contents of your Storage Chest: <br>";
@@ -282,16 +284,19 @@ function storage(){
 }
 function takeChest(num){
     let item = player.chest[num];
-    // itemDisplay(item);
-    player.chest.splice(num,1);
-    socket.emit('chest to inv',{data:num});
-    console.log("trying get this item: ",item);
-    console.log(player.chest);
+    if(player.kg+item.kg<=player.maxKg){
+        player.chest.splice(num,1);
+        player.backpack.push(item);
+        socket.emit('chest to inv',{data:num});
+    } else {
+        alert("You can't hold that, it's too heavy.");
+    }
     storage();
 }
 function putChest(num){
     let item = player.backpack[num];
     player.chest.push(item);
+    player.kg -= item.kg;
     // itemDisplay(item);
     if(player.gear.tool.length>0&&item.name===player.gear.tool[0].name){
         player.gear.tool.pop();
@@ -439,6 +444,12 @@ socket.on('node',data => {
 });
 socket.on('chest' ,()=> {
     storage();
+});
+socket.on('forge', () => {
+    action.innerHTML = "";
+    action.innerHTML += forge.name + "<br>";
+    action.innerHTML += "Contents: <br>";
+
 });
 //Keyboard reading controls for player movement
 document.onkeydown = function(event){

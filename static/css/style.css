@@ -31,13 +31,13 @@
 }
 #display {
     width:390px;
-    height:296px;
+    height:396px;
     color:red;
     border:2px solid red;
 }
 #action {
     width:390px;
-    height:296px;
+    height:196px;
     color:green;
     border:2px dotted powderblue;
 
