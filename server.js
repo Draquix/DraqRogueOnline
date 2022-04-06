@@ -120,6 +120,14 @@ io.on('connection', socket => {
         console.log('after unstack',player);
         socket.emit('player update',{player,atChest:false});
     });
+    socket.on('load forge', data => {
+        let ore = PLAYER_LIST[socket.id].backpack[data.num];
+        PLAYER_LIST[socket.id].backpack.splice(data.num,1);
+        PLAYER_LIST[socket.id].forgeContents.push(ore);
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update', {player,atChest:false});
+        socket.emit('forge');
+    });
     socket.on('key press', data => {
         // console.log('Key fired: ',data);
         var player = PLAYER_LIST[data.id];

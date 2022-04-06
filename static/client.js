@@ -20,7 +20,57 @@ var localId=0;
 var maps =[];
 var localTickOn=0;
 var homeTick=0;
-var forge={};
+var forge = {
+    name:"The Forge",
+    contents:[],
+    inUse:false,
+    addCheck: function(added){
+    var ore1, ore2 = " ";
+    if(this.contents.length>0){
+        ore1 = this.contents[0].metal;
+        // console.log('has contents!!! and adding: ',added);
+        for(i in this.contents){
+            // console.log('sorting contents',this.contents[i].metal,'ore1 is',ore1);
+            if(this.contents[i].metal!=ore1){
+                ore2=this.contents[i].metal;
+                console.log('not ore1',ore2);
+                // console.log('its the first ore--',ore1);
+            } 
+        }
+        // console.log('ore 1 and 2 after checking',ore1,ore2);
+        if(added.metal===ore1||added.metal===ore2||ore2===" "){
+            this.contents.push(added);
+            // console.log('it is pushed into there, added successfully');
+            return true;
+        } else {
+            alert("You already have two other types of ore in there...");
+            return false;
+        }
+    } else {
+        // console.log('empty so adding');
+        this.contents.push(added);
+        return true;
+    }
+    // console.log('loaded with ores: ',ore1, ore2,this.contents);
+},totaler:function(){
+    let ore1 = {
+        name:this.contents[0].metal,
+        purity:0};
+    // console.log('in totaler ore1 is',ore1);
+    let ore2 = {
+        name:'na',
+        purity:0};
+    for(i in this.contents){
+        if(this.contents[i].metal===ore1.name){
+            ore1.purity += this.contents[i].purity;
+        } else {
+            ore2.name = this.contents[i].metal;
+            ore2.purity += this.contents[i].purity;
+        }
+    }
+    return [ore1,ore2];
+}
+}
 
 //Event listener for login form submit
 login.addEventListener('submit', e => {
@@ -43,7 +93,7 @@ socket.on('handshaking', data => {
     localTickOn = data.tick;
     localId = data.id;
     maps = data.maps;
-    forge = data.forge;
+    forge.recipes = data.forge.recipes;
     console.log(maps);
 
 });
@@ -206,6 +256,13 @@ function charDisplay(atChest){
         for(i in player.backpack){
             item.innerHTML += `A ${player.backpack[i].name} - ${player.backpack[i].kg} kgs <a href="javascript:putChest(${i});"> store </a> `;
         }
+    } else if (forge.inUse===true){
+        for(i in player.backpack){
+            item.innerHTML += `A ${player.backpack[i].name}`;
+            if(player.backpack[i].type==="ore"){
+                item.innerHTML += ` <a href="javascript:putInForge(${i});"> Load Forge </a> ,`;
+            } else { item.innerHTML += ", "};
+        }
     } else {
         for(i in player.backpack){
             item.innerHTML += `A ${player.backpack[i].name}- ${player.backpack[i].kg} kgs `
@@ -284,6 +341,7 @@ function storage(){
 }
 function takeChest(num){
     let item = player.chest[num];
+    // console.log('pre alert!!!',item);
     if(player.kg+item.kg<=player.maxKg){
         player.chest.splice(num,1);
         player.backpack.push(item);
@@ -360,6 +418,16 @@ function stackThis(itemName){
     msgs.appendChild(msg);
     itemDisplay(stack);
     socket.emit('stackpack',{stack,del:targetSplice});
+}
+function putInForge(num){
+    let ore = player.backpack[num];
+    if(forge.addCheck(ore)){
+        console.log('put in forge worked...',forge.contents);
+        // forge.contents.push(ore);
+        player.backpack.splice(num,1);
+        player.forgeContents = forge.contents;
+        socket.emit('load forge', {num:num});
+    }
 }
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
@@ -446,10 +514,34 @@ socket.on('chest' ,()=> {
     storage();
 });
 socket.on('forge', () => {
+    forge.inUse=true;
+    charDisplay();
     action.innerHTML = "";
     action.innerHTML += forge.name + "<br>";
-    action.innerHTML += "Contents: <br>";
+    forge.contents = player.forgeContents;
+    if(forge.contents.length>0){
+        let disp = forge.totaler();
+        for(i in disp){
+            if(!(disp[i].name==="na")){
+                action.innerHTML += `${disp[i].name} of total purity: ${disp[i].purity} `;
+                for(let j = 0; j < player.forge+1; j++){
+                    for(n in forge.recipes[j]){
+                        console.log(forge.recipes[j][n].metal1,forge.recipes[j][n].metal2," and ",disp[i].name,disp[i].purity);
+                        if(forge.recipes[j][n].metal1===forge.recipes[j][n].metal2&&forge.recipes[j][n].metal1===disp[i].name&&disp[i].purity>=1){
+                            console.log(disp[i].purity>=1)
+                            action.innerHTML += `<a href="javascript:smelt(${j});"> Smelt </a><br>`; 
+                        } else {
+                            action.innerHTML += `<br>`;
+                        }
+                    }
 
+                }
+            }
+        }
+    } else {
+        action.innerHTML += "Contents:  -empty- <br>";
+    }
+    action.innerHTML += `<a href="javascript:forgeRecipes();"> Recipes </a>`;
 });
 //Keyboard reading controls for player movement
 document.onkeydown = function(event){
@@ -459,6 +551,7 @@ document.onkeydown = function(event){
     charDisplay();
     if(localId===0){
         return;}else{
+            forge.inUse=false;
     if(event.keyCode === 68){  //d
         space = map[player.ypos][player.xpos+1];
         socket.emit('key press',{inputDir:'right', target:space, state:true, id:localId});
@@ -477,4 +570,5 @@ document.onkeydown = function(event){
     }
     }
 }
+
 
