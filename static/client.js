@@ -419,6 +419,7 @@ function stackThis(itemName){
     itemDisplay(stack);
     socket.emit('stackpack',{stack,del:targetSplice});
 }
+//forging functions
 function putInForge(num){
     let ore = player.backpack[num];
     if(forge.addCheck(ore)){
@@ -428,6 +429,29 @@ function putInForge(num){
         player.forgeContents = forge.contents;
         socket.emit('load forge', {num:num});
     }
+}
+function smelt(lvl,num){
+    let item = forge.recipes[lvl][num];
+    console.log(item);
+    var one=false,two=false;
+    console.log('before smelt',forge.contents);
+    for(i in forge.contents){
+        if(forge.contents[i]['metal']===item.metal1&&one===false){
+            one=true;
+            forge.contents.splice(i,1);
+            console.log(i,'attempt one',one,two);
+        }
+    }
+    for(i in forge.contents){
+        if(forge.contents[i]['metal']===item.metal2&&two===false
+        ){
+            two=true;
+            forge.contents.splice(i,1);
+            console.log(i,'attempt two',one,two);
+        }
+    }
+    console.log('after smelt ',forge.contents);
+    socket.emit('smelting attempt',index);
 }
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
@@ -529,7 +553,7 @@ socket.on('forge', () => {
                         console.log(forge.recipes[j][n].metal1,forge.recipes[j][n].metal2," and ",disp[i].name,disp[i].purity);
                         if(forge.recipes[j][n].metal1===forge.recipes[j][n].metal2&&forge.recipes[j][n].metal1===disp[i].name&&disp[i].purity>=1){
                             console.log(disp[i].purity>=1)
-                            action.innerHTML += `<a href="javascript:smelt(${j});"> Smelt </a><br>`; 
+                            action.innerHTML += `<a href="javascript:smelt(${j},${n});"> Smelt </a><br>`; 
                         } else {
                             action.innerHTML += `<br>`;
                         }

@@ -128,6 +128,9 @@ io.on('connection', socket => {
         socket.emit('player update', {player,atChest:false});
         socket.emit('forge');
     });
+    socket.on('smelting attempt', data => {
+        console.log(data);
+    });
     socket.on('key press', data => {
         // console.log('Key fired: ',data);
         var player = PLAYER_LIST[data.id];
