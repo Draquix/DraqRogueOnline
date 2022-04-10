@@ -33,7 +33,7 @@ var forge = {
             // console.log('sorting contents',this.contents[i].metal,'ore1 is',ore1);
             if(this.contents[i].metal!=ore1){
                 ore2=this.contents[i].metal;
-                console.log('not ore1',ore2);
+                // console.log('not ore1',ore2);
                 // console.log('its the first ore--',ore1);
             } 
         }
@@ -61,6 +61,7 @@ var forge = {
         name:'na',
         purity:0};
     for(i in this.contents){
+        console.log("purity checks: ",this.contents[i].purity);
         if(this.contents[i].metal===ore1.name){
             ore1.purity += this.contents[i].purity;
         } else {
@@ -451,7 +452,7 @@ function smelt(lvl,num){
         }
     }
     console.log('after smelt ',forge.contents);
-    socket.emit('smelting attempt',index);
+    socket.emit('smelting attempt',{rec:[lvl,num],cont:player.forgeContents});
 }
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
