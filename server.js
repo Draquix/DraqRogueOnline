@@ -123,16 +123,22 @@ io.on('connection', socket => {
     socket.on('load forge', data => {
         let ore = PLAYER_LIST[socket.id].backpack[data.num];
         PLAYER_LIST[socket.id].backpack.splice(data.num,1);
-        PLAYER_LIST[socket.id].forgeContents.push(ore);
+        PLAYER_LIST[socket.id].PCforge.addOre(ore);
         let player = PLAYER_LIST[socket.id];
         player.kg -= ore.kg;
+        socket.emit('player update', {player,atChest:false});
+        socket.emit('forge');
+    });
+    socket.on('empty forge', data => {
+        PLAYER_LIST[socket.id].PCforge.empty(data.num);
+        let player = PLAYER_LIST[socket.id];
         socket.emit('player update', {player,atChest:false});
         socket.emit('forge');
     });
     socket.on('smelting attempt', data => {
         let recipe = nod.forge.recipes[data.rec[0]][data.rec[1]];
         console.log('trying to smelt',recipe);
-        PLAYER_LIST[socket.id].forgeContents= nod.forge.smelt(data.cont,data.rec[0],data.rec[1]);
+        PLAYER_LIST[socket.id].PCforge= nod.forge.smelt(data.rec[0],data.rec[1]);
         PLAYER_LIST[socket.id].data=recipe;
         PLAYER_LIST[socket.id].doFlag='smelting';
         socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
@@ -292,5 +298,4 @@ server.listen(port, () => {
     console.log('server listening on port: ', port);
 });
 console.log('server script fully loaded');
-
 

@@ -22,55 +22,42 @@ var localTickOn=0;
 var homeTick=0;
 var forge = {
     name:"The Forge",
-    contents:[],
+    metal1:{name:"none",purity:0},
+    metal2:{name:"none",purity:0},
     inUse:false,
-    addCheck: function(added){
-    var ore1, ore2 = " ";
-    if(this.contents.length>0){
-        ore1 = this.contents[0].metal;
-        // console.log('has contents!!! and adding: ',added);
-        for(i in this.contents){
-            // console.log('sorting contents',this.contents[i].metal,'ore1 is',ore1);
-            if(this.contents[i].metal!=ore1){
-                ore2=this.contents[i].metal;
-                // console.log('not ore1',ore2);
-                // console.log('its the first ore--',ore1);
-            } 
-        }
-        // console.log('ore 1 and 2 after checking',ore1,ore2);
-        if(added.metal===ore1||added.metal===ore2||ore2===" "){
-            this.contents.push(added);
-            // console.log('it is pushed into there, added successfully');
-            return true;
-        } else {
-            alert("You already have two other types of ore in there...");
+    addOre: function(added){
+        if ( (this.metal1.name!="none"&&this.metal1.name!=added.metal) && (this.metal2.name!="none"&&this.metal2.name!=added.metal) ){
+            alert("You can't put a third type of metal in the forge!");
             return false;
         }
-    } else {
-        // console.log('empty so adding');
-        this.contents.push(added);
-        return true;
-    }
-    // console.log('loaded with ores: ',ore1, ore2,this.contents);
-},totaler:function(){
-    let ore1 = {
-        name:this.contents[0].metal,
-        purity:0};
-    // console.log('in totaler ore1 is',ore1);
-    let ore2 = {
-        name:'na',
-        purity:0};
-    for(i in this.contents){
-        console.log("purity checks: ",this.contents[i].purity);
-        if(this.contents[i].metal===ore1.name){
-            ore1.purity += this.contents[i].purity;
-        } else {
-            ore2.name = this.contents[i].metal;
-            ore2.purity += this.contents[i].purity;
+        if(this.metal1.name==="none"){
+            this.metal1.name = added.metal;
+            this.metal1.purity += added.purity;
+            return true;
+        } else if (this.metal2.name==="none"&&this.metal1.name!=added.metal){
+            this.metal2.name = added.metal;
+            this.metal2.purity += added.purity;
+            return true;
+        } 
+        if (this.metal1.name===added.metal){
+            this.metal1.purity += added.purity;
+            return true;
+        } else if (this.metal2.name===added.metal){
+            this.metal2.purity += added.purity;
+            return true;
         }
+    },
+    empty: function(num){
+        if(num===1){
+            this.metal1.name="na";
+            this.metal1.purity=0;
+        }
+        if(num===2){
+            this.metal2.name="na";
+            this.metal2.purity=0;
+        }
+        socket.emit('empty forge', {num:num});
     }
-    return [ore1,ore2];
-}
 }
 
 //Event listener for login form submit
@@ -423,36 +410,27 @@ function stackThis(itemName){
 //forging functions
 function putInForge(num){
     let ore = player.backpack[num];
-    if(forge.addCheck(ore)){
-        console.log('put in forge worked...',forge.contents);
-        // forge.contents.push(ore);
+    if(forge.addOre(ore)){
+        // console.log('put in forge worked...',forge.metal1,forge.metal2);
         player.backpack.splice(num,1);
-        player.forgeContents = forge.contents;
+        player.PCforge = forge;
         socket.emit('load forge', {num:num});
     }
 }
 function smelt(lvl,num){
     let item = forge.recipes[lvl][num];
-    console.log(item);
-    var one=false,two=false;
-    console.log('before smelt',forge.contents);
-    for(i in forge.contents){
-        if(forge.contents[i]['metal']===item.metal1&&one===false){
-            one=true;
-            forge.contents.splice(i,1);
-            console.log(i,'attempt one',one,two);
-        }
+    // console.log('smelting forge method: ', item);
+    if(item.metal1===forge.metal1.name){
+        forge.metal1.purity -= .5;
+    } else if(item.metal1===forge.metal2.name){
+        forge.metal2.purity -= .5;
     }
-    for(i in forge.contents){
-        if(forge.contents[i]['metal']===item.metal2&&two===false
-        ){
-            two=true;
-            forge.contents.splice(i,1);
-            console.log(i,'attempt two',one,two);
-        }
+    if(item.metal2===forge.metal1.name){
+        forge.metal1.purity -= .5;
+    } else if(item.metal2===forge.metal2.name){
+        forge.metal2.purity -= .5;
     }
-    console.log('after smelt ',forge.contents);
-    socket.emit('smelting attempt',{rec:[lvl,num],cont:player.forgeContents});
+    socket.emit('smelting attempt',{rec:[lvl,num]});
 }
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
@@ -543,30 +521,39 @@ socket.on('forge', () => {
     charDisplay();
     action.innerHTML = "";
     action.innerHTML += forge.name + "<br>";
-    forge.contents = player.forgeContents;
-    if(forge.contents.length>0){
-        let disp = forge.totaler();
-        for(i in disp){
-            if(!(disp[i].name==="na")){
-                action.innerHTML += `${disp[i].name} of total purity: ${disp[i].purity} `;
-                for(let j = 0; j < player.forge+1; j++){
-                    for(n in forge.recipes[j]){
-                        console.log(forge.recipes[j][n].metal1,forge.recipes[j][n].metal2," and ",disp[i].name,disp[i].purity);
-                        if(forge.recipes[j][n].metal1===forge.recipes[j][n].metal2&&forge.recipes[j][n].metal1===disp[i].name&&disp[i].purity>=1){
-                            console.log(disp[i].purity>=1)
-                            action.innerHTML += `<a href="javascript:smelt(${j},${n});"> Smelt </a><br>`; 
-                        } else {
-                            action.innerHTML += `<br>`;
-                        }
-                    }
-
+    action.innerHTML += `Prime Metal: ${forge.metal1.name} of total Purity: ${forge.metal1.purity}`;
+    for(let i = 0; i < player.forge+1;i++){
+        for(j in forge.recipes[i]){
+            let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
+            console.log('recipe ingredients: ',one,two);
+            if(one===two){
+                console.log('one is two',one,forge.metal1.name,forge.metal1.purity);
+                if( forge.metal1.name===one&&forge.metal1.purity>=1 ){
+                action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
+                }
+            } else if ( one===forge.metal1.name&&two===forge.metal2.name ){
+                if(forge.metal1.purity>=.5&&forge.metal2.purity>=.5){
+                    action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
                 }
             }
         }
-    } else {
-        action.innerHTML += "Contents:  -empty- <br>";
     }
-    action.innerHTML += `<a href="javascript:forgeRecipes();"> Recipes </a>`;
+    action.innerHTML += `<br> Secondary Metal: ${forge.metal2.name} of total Purity: ${forge.metal2.purity}`;
+    for(let i = 0; i < player.forge+1;i++){
+        for(j in forge.recipes[i]){
+            let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
+            if(one===two){
+                console.log('second recipe: ',one,forge.metal2.name );
+                if( forge.metal2.name===one&&forge.metal2.purity>=1 ){
+                action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
+                }
+            } else if (one===forge.metal2.name&&forge.metal2.purity>=1){
+                action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
+            }
+        }
+    }
+    action.innerHTML += `<br> <a href="javascript:forge.empty(1);"> Empty Primary </a> <br>`;
+    action.innerHTML += `<a href="javascript:forge.empty(2);"> Empty Secondary </a> <br>`;   
 });
 //Keyboard reading controls for player movement
 document.onkeydown = function(event){
