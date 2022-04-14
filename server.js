@@ -18,7 +18,6 @@ const maps = require('./lib/maps');
 //Global Variablies
 let SOCKET_LIST = {};
 var PLAYER_LIST = {};
-
 //Socket.io handling for client/server communications
 io.on('connection', socket => {
     console.log('a client has connected');
@@ -61,7 +60,7 @@ io.on('connection', socket => {
         });
     socket.on('equip', data => {
         var item = PLAYER_LIST[socket.id].backpack[data.index];
-        console.log('trying to equip: ',item);
+        // console.log('trying to equip: ',item);
         if(item.type==="tool"){
             if(PLAYER_LIST[socket.id].gear.tool.length>0){
                 let removed = PLAYER_LIST[socket.id].gear.tool[0];
@@ -76,14 +75,14 @@ io.on('connection', socket => {
     });
     socket.on('unequip', data => {
         let item = PLAYER_LIST[socket.id].gear[data.key][0];
-        console.log(item);
+        // console.log(item);
         PLAYER_LIST[socket.id].gear[data.key].pop();
         PLAYER_LIST[socket.id].backpack.push(item);
         let player = PLAYER_LIST[socket.id];
         socket.emit('player update', {player,atChest:false});
     });
     socket.on('chest to inv', data => {
-        console.log('data',data.data);
+        // console.log('data',data.data);
         let item = PLAYER_LIST[socket.id].chest[data.data];
         if(PLAYER_LIST[socket.id].liftable(item)){
             PLAYER_LIST[socket.id].kg += item.kg;
@@ -101,7 +100,7 @@ io.on('connection', socket => {
         socket.emit('player update', {player,atChest:true});
     });
     socket.on('stackpack', data=> {
-        console.log('stacked pack from above: ',data);
+        // console.log('stacked pack from above: ',data);
         let player = PLAYER_LIST[socket.id];
         for(var i = data.del.length;i>0;i--){
             player.backpack.splice(data.del[i-1],1);
@@ -111,13 +110,13 @@ io.on('connection', socket => {
         socket.emit('player update',{player,atChest:false});
     });
     socket.on('unstack', data =>{
-        console.log('unstacking: ',data.stack)
+        // console.log('unstacking: ',data.stack)
         PLAYER_LIST[socket.id].backpack.splice(data.num,1);
         for(i in data.stack.pack){
             PLAYER_LIST[socket.id].backpack.push(data.stack.pack[i]);
         }
         let player = PLAYER_LIST[socket.id];
-        console.log('after unstack',player);
+        // console.log('after unstack',player);
         socket.emit('player update',{player,atChest:false});
     });
     socket.on('load forge', data => {
@@ -125,6 +124,7 @@ io.on('connection', socket => {
         PLAYER_LIST[socket.id].backpack.splice(data.num,1);
         PLAYER_LIST[socket.id].PCforge.addOre(ore);
         let player = PLAYER_LIST[socket.id];
+        // console.log('loaded into forge: ',player.PCforge);
         player.kg -= ore.kg;
         socket.emit('player update', {player,atChest:false});
         socket.emit('forge');
@@ -137,10 +137,18 @@ io.on('connection', socket => {
     });
     socket.on('smelting attempt', data => {
         let recipe = nod.forge.recipes[data.rec[0]][data.rec[1]];
-        console.log('trying to smelt',recipe);
-        PLAYER_LIST[socket.id].PCforge= nod.forge.smelt(data.rec[0],data.rec[1]);
+        // console.log('trying to smelt',recipe);
+        console.log(data.forge);
+        PLAYER_LIST[socket.id].PCforge.metal1=data.forge[0];
+        PLAYER_LIST[socket.id].PCforge.metal2=data.forge[1];
+        console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
+        PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1]);
+        console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
         PLAYER_LIST[socket.id].data=recipe;
         PLAYER_LIST[socket.id].doFlag='smelting';
+        if(data.all){
+            PLAYER_LIST[socket.id].doFlag+=' all';
+        }
         socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
     });
     socket.on('key press', data => {
@@ -220,12 +228,12 @@ setInterval( function () {
                     if(PLAYER_LIST[i].mine>=PLAYER_LIST[i].data.req){
                         let rng = Math.random();
                         let skill = (PLAYER_LIST[i].mine/100)+PLAYER_LIST[i].data.baseDiff+(PLAYER_LIST[i].gear.tool[0].bonus/100);
-                        console.log("mining away with ",rng," as rng and ",skill," as modified success...");
+                        // console.log("mining away with ",rng," as rng and ",skill," as modified success...");
                         if(rng<skill){
                             let success = PLAYER_LIST[i].data.onSuccess();
                             success[0].purity=parseFloat(success[0].purity);
                             PLAYER_LIST[i].mineXp += success[1];
-                            console.log('got a chunk of ore: ',success[0]);
+                            // console.log('got a chunk of ore: ',success[0]);
                             if(PLAYER_LIST[i].liftable(success[0])){
                                 PLAYER_LIST[i].backpack.push(success[0]);
                                 PLAYER_LIST[i].kg+= success[0].kg;
@@ -252,9 +260,10 @@ setInterval( function () {
                     socket.emit('msg',{msg:"You do not have a pickaxe equipped for mining."});
                 }
             }
-            if(PLAYER_LIST[i].doFlag==='smelting'){
-                PLAYER_LIST[i].data.tick--;
-                if(PLAYER_LIST[i].data.tick===0){
+            if(PLAYER_LIST[i].doFlag==='smelting'||PLAYER_LIST[i].doFlag==='smelting all'){
+                console.log('currently smelting :',PLAYER_LIST[i].data);
+                PLAYER_LIST[i].PCforge.ticker--;
+                if(PLAYER_LIST[i].PCforge.ticker===0){
                     let rng = Math.random();
                     let skill = (PLAYER_LIST[i].forge/100)+(PLAYER_LIST[i].data.baseDiff);
                     console.log('smelting attempt with rng: '+ rng +' and skill: '+skill);
@@ -262,12 +271,13 @@ setInterval( function () {
                         let bar = PLAYER_LIST[i].data.onSuccess();
                         console.log(bar);
                         PLAYER_LIST[i].forgeXp += bar[1];
-                        let result = `You successfully made a ${bar.name} and gained ${PLAYER_LIST[i].data.xp} xp!`;
+                        let result = `You successfully made a ${bar[0].name} and gained ${PLAYER_LIST[i].data.xp} xp!`;
                         if(PLAYER_LIST[i].forgeXp>=PLAYER_LIST[i].forgeTnl){
                             PLAYER_LIST[i].forge++;
                             PLAYER_LIST[i].forgeTnl =40*PLAYER_LIST[i].forge*1.2;
                             socket.emit('msg',{msg:`Your forging level has increased to ${PLAYER_LIST[i].forge}!`});
                         }
+                        // console.log('the forge after smelting: ',PLAYER_LIST[i].PCforge);
                         // console.log('smelting weight bug',bar.kg,PLAYER_LIST[i].kg,PLAYER_LIST[i].maxKg);
                         if(bar[0].kg+PLAYER_LIST[i].kg<=PLAYER_LIST[i].maxKg){
                             PLAYER_LIST[i].kg+=bar[0].kg;
@@ -283,6 +293,10 @@ setInterval( function () {
                         socket.emit('msg',{msg:"You failed at the smelting attempt."});
                     }
                     socket.emit('forge');    
+                    if(PLAYER_LIST[i].doFlag==='smelting all'){
+                        let data = PLAYER_LIST[i].data;
+                        socket.emit('reforge',{data});
+                    }
                     PLAYER_LIST[i].doFlag="nothing";
                     PLAYER_LIST[i].data = {};
                 }
@@ -299,3 +313,4 @@ server.listen(port, () => {
 });
 console.log('server script fully loaded');
 
+io.emit('reboot');

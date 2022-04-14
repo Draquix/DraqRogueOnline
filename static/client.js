@@ -26,6 +26,7 @@ var forge = {
     metal2:{name:"none",purity:0},
     inUse:false,
     addOre: function(added){
+        console.log(forge);
         if ( (this.metal1.name!="none"&&this.metal1.name!=added.metal) && (this.metal2.name!="none"&&this.metal2.name!=added.metal) ){
             alert("You can't put a third type of metal in the forge!");
             return false;
@@ -417,20 +418,24 @@ function putInForge(num){
         socket.emit('load forge', {num:num});
     }
 }
-function smelt(lvl,num){
+function smelt(lvl,num,all){
     let item = forge.recipes[lvl][num];
     // console.log('smelting forge method: ', item);
-    if(item.metal1===forge.metal1.name){
+    if(item.metal1===forge.metal1.name&&item.metal1!=item.metal2){
         forge.metal1.purity -= .5;
-    } else if(item.metal1===forge.metal2.name){
+    } else if(item.metal1===forge.metal2.name&&item.metal1!=item.metal2){
+        forge.metal2.purity -= .5;
+    } else if(item.metal1===forge.metal1.name&&item.metal1===item.metal2){
+        forge.metal1.purity -= 1;
+    } else if(item.metal===forge.metal2.name&&item.metal1===item.metal2){
+        forge.metal2.purity -= 1;
+    }
+    if(item.metal2===forge.metal1.name&&item.metal1!=item.metal2){
+        forge.metal1.purity -= .5;
+    } else if(item.metal2===forge.metal2.name&&item.metal1!=item.metal2){
         forge.metal2.purity -= .5;
     }
-    if(item.metal2===forge.metal1.name){
-        forge.metal1.purity -= .5;
-    } else if(item.metal2===forge.metal2.name){
-        forge.metal2.purity -= .5;
-    }
-    socket.emit('smelting attempt',{rec:[lvl,num]});
+    socket.emit('smelting attempt',{rec:[lvl,num],forge:[player.PCforge.metal1,player.PCforge.metal2],all});
 }
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
@@ -529,11 +534,13 @@ socket.on('forge', () => {
             if(one===two){
                 console.log('one is two',one,forge.metal1.name,forge.metal1.purity);
                 if( forge.metal1.name===one&&forge.metal1.purity>=1 ){
-                action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
+                action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
+                action.innerHTML += ` <br> <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
                 }
             } else if ( one===forge.metal1.name&&two===forge.metal2.name ){
                 if(forge.metal1.purity>=.5&&forge.metal2.purity>=.5){
-                    action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
+                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> | `;
+                    action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
                 }
             }
         }
@@ -545,15 +552,24 @@ socket.on('forge', () => {
             if(one===two){
                 console.log('second recipe: ',one,forge.metal2.name );
                 if( forge.metal2.name===one&&forge.metal2.purity>=1 ){
-                action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
-                }
+                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
+                    action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
+            }
             } else if (one===forge.metal2.name&&forge.metal2.purity>=1){
-                action.innerHTML += ` <a href="javascript:smelt(${i},${j});"> smelt ${forge.recipes[i][j].name} </a>`;
+                action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
+                action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
             }
         }
     }
     action.innerHTML += `<br> <a href="javascript:forge.empty(1);"> Empty Primary </a> <br>`;
     action.innerHTML += `<a href="javascript:forge.empty(2);"> Empty Secondary </a> <br>`;   
+});
+socket.on('reforge', data => {
+    console.log('reforging packet: ',data);
+});
+//server reboot event to tell client to refresh
+socket.on('reboot', () => {
+    alert('Server has rebooted since you connected, please refresh your browser.');
 });
 //Keyboard reading controls for player movement
 document.onkeydown = function(event){
