@@ -94,7 +94,7 @@ socket.on('alert', data => {
 //scrolling message window from server
 socket.on('msg', data => {
     let post = document.createElement('li');
-    post.innerText = data.msg;
+    post.innerHTML = data.msg;
     // console.log('innerhtml: ',post);
     msgs.appendChild(post);
     msgs.scrollTop = msgs.scrollHeight;
@@ -118,7 +118,8 @@ loaded.innerText = "action loaded";
 action.appendChild(loaded);
 var player={
     xpos:1,
-    ypos:1
+    ypos:1,
+    gear:{tool:[]}
 }
 //draw map function
 function draw(map){
@@ -521,7 +522,8 @@ socket.on('node',data => {
 socket.on('chest' ,()=> {
     storage();
 });
-socket.on('forge', () => {
+socket.on('forge', forging);
+function forging(){
     forge.inUse=true;
     charDisplay();
     action.innerHTML = "";
@@ -563,7 +565,7 @@ socket.on('forge', () => {
     }
     action.innerHTML += `<br> <a href="javascript:forge.empty(1);"> Empty Primary </a> <br>`;
     action.innerHTML += `<a href="javascript:forge.empty(2);"> Empty Secondary </a> <br>`;   
-});
+}
 socket.on('reforge', data => {
     console.log('reforging packet: ',data);
 });
@@ -573,6 +575,7 @@ socket.on('reboot', () => {
 });
 //Keyboard reading controls for player movement
 document.onkeydown = function(event){
+    // console.log('keypress');
     player.doing = 'Nothing';
     var map = maps.mapArr;
     let space = map[player.ypos][player.xpos];
@@ -600,3 +603,4 @@ document.onkeydown = function(event){
 }
 
 
+console.log(' client script loaded');
