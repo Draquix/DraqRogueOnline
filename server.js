@@ -124,7 +124,7 @@ io.on('connection', socket => {
         PLAYER_LIST[socket.id].backpack.splice(data.num,1);
         PLAYER_LIST[socket.id].PCforge.addOre(ore);
         let player = PLAYER_LIST[socket.id];
-        // console.log('loaded into forge: ',player.PCforge);
+        console.log('loaded into forge: ',player.PCforge);
         player.kg -= ore.kg;
         socket.emit('player update', {player,atChest:false});
         socket.emit('forge');
@@ -141,16 +141,25 @@ io.on('connection', socket => {
         console.log('smelting data',data.forge);
         PLAYER_LIST[socket.id].PCforge.metal1=data.forge[0];
         PLAYER_LIST[socket.id].PCforge.metal2=data.forge[1];
-        // console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
-        PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1]);
-        // console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
-        PLAYER_LIST[socket.id].data=recipe;
-        PLAYER_LIST[socket.id].doFlag='smelting';
-        if(data.all){
-            PLAYER_LIST[socket.id].doFlag+=' all';
-            PLAYER_LIST[socket.id].data.all = data.rec;
+        if(data.forge[0].purity+data.forge[1].purity>=1){
+             // console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
+            PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1]);
+            // console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
+            PLAYER_LIST[socket.id].data=recipe;
+            PLAYER_LIST[socket.id].doFlag='smelting';
+            if(data.all){
+                PLAYER_LIST[socket.id].doFlag+=' all';
+                PLAYER_LIST[socket.id].data.all = data.rec;
+            }
+            socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
+        } else {
+            socket.emit('msg',{msg:"You do not have enough ore to continue your smelting..."});
+            PLAYER_LIST[socket.id].doFlag = 'nothing';
+            PLAYER_LIST[socket.id].data = {};
+            let player = PLAYER_LIST[socket.id];
+            socket.emit('player update', {player,atChest:false});
+            socket.emit('forge');
         }
-        socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
     });
     socket.on('key press', data => {
         // console.log('Key fired: ',data);
@@ -263,7 +272,7 @@ setInterval( function () {
                 }
             }
             if(PLAYER_LIST[i].doFlag==='smelting'||PLAYER_LIST[i].doFlag==='smelting all'){
-                console.log('currently smelting :',PLAYER_LIST[i].data);
+                // console.log('currently smelting :',PLAYER_LIST[i].data);
                 PLAYER_LIST[i].PCforge.ticker--;
                 if(PLAYER_LIST[i].PCforge.ticker===0){
                     let rng = Math.random();

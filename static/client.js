@@ -422,18 +422,18 @@ function putInForge(num){
 function smelt(lvl,num,all){
     let item = forge.recipes[lvl][num];
     // console.log('smelting forge method: ', item);
-    if(item.metal1===forge.metal1.name&&item.metal1!=item.metal2){
+    if(item.metal1===forge.metal1.name&&item.metal1!=item.metal2&&forge.metal1.purity>=.5){
         forge.metal1.purity -= .5;
-    } else if(item.metal1===forge.metal2.name&&item.metal1!=item.metal2){
+    } else if(item.metal1===forge.metal2.name&&item.metal1!=item.metal2&&forge.metal2.purity>=.5){
         forge.metal2.purity -= .5;
-    } else if(item.metal1===forge.metal1.name&&item.metal1===item.metal2){
+    } else if(item.metal1===forge.metal1.name&&item.metal1===item.metal2&&forge.metal1.purity>=1){
         forge.metal1.purity -= 1;
-    } else if(item.metal===forge.metal2.name&&item.metal1===item.metal2){
+    } else if(item.metal===forge.metal2.name&&item.metal1===item.metal2&&forge.metal2.purity>=1){
         forge.metal2.purity -= 1;
     }
-    if(item.metal2===forge.metal1.name&&item.metal1!=item.metal2){
+    if(item.metal2===forge.metal1.name&&item.metal1!=item.metal2&&forge.metal1.purity>=.5){
         forge.metal1.purity -= .5;
-    } else if(item.metal2===forge.metal2.name&&item.metal1!=item.metal2){
+    } else if(item.metal2===forge.metal2.name&&item.metal1!=item.metal2&&forge.metal2.purity>=.5){
         forge.metal2.purity -= .5;
     }
     socket.emit('smelting attempt',{rec:[lvl,num],forge:[player.PCforge.metal1,player.PCforge.metal2],all});
