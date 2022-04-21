@@ -568,6 +568,10 @@ function forging(){
 }
 socket.on('reforge', data => {
     console.log('reforging packet: ',data);
+    console.log('reforge data.all',data.data.all);
+    forging();
+    smelt(data.data.all[0],data.data.all[1],true);
+
 });
 //server reboot event to tell client to refresh
 socket.on('reboot', () => {

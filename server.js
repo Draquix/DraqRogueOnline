@@ -138,22 +138,24 @@ io.on('connection', socket => {
     socket.on('smelting attempt', data => {
         let recipe = nod.forge.recipes[data.rec[0]][data.rec[1]];
         // console.log('trying to smelt',recipe);
-        console.log(data.forge);
+        console.log('smelting data',data.forge);
         PLAYER_LIST[socket.id].PCforge.metal1=data.forge[0];
         PLAYER_LIST[socket.id].PCforge.metal2=data.forge[1];
-        console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
+        // console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
         PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1]);
-        console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
+        // console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
         PLAYER_LIST[socket.id].data=recipe;
         PLAYER_LIST[socket.id].doFlag='smelting';
         if(data.all){
             PLAYER_LIST[socket.id].doFlag+=' all';
+            PLAYER_LIST[socket.id].data.all = data.rec;
         }
         socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
     });
     socket.on('key press', data => {
         // console.log('Key fired: ',data);
         var player = PLAYER_LIST[data.id];
+        PLAYER_LIST[socket.id].doFlag = "nothing";
         if(data.target===","||data.target==="."||data.target==="+"||data.target===";"){
             player.move(data.inputDir);
         } else {
