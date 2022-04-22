@@ -152,6 +152,7 @@ io.on('connection', socket => {
                 PLAYER_LIST[socket.id].data.all = data.rec;
             }
             socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
+            socket.emit('forge');
         } else {
             socket.emit('msg',{msg:"You do not have enough ore to continue your smelting...",color:'pink'});
             PLAYER_LIST[socket.id].doFlag = 'nothing';

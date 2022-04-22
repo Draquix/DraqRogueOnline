@@ -591,7 +591,7 @@ function forging(){
     }
     action.innerHTML += `<br> <span style="color:violet"> Making Alloys </span> <br>`;
     for(let i = 0; i < player.forge+1; i++){
-        for(j in forge.recipes[1]){
+        for(j in forge.recipes[i]){
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
             if ( (one===forge.metal1.name&&two===forge.metal2.name) || (one===forge.metal2.name&&two===forge.metal1.name) ){
                 if(forge.metal1.purity>=.5&&forge.metal2.purity>=.5){
