@@ -20,13 +20,13 @@ var localId=0;
 var maps =[];
 var localTickOn=0;
 var homeTick=0;
-var forge = {
+var Forge = {
     name:"The Forge",
     metal1:{name:"none",purity:0},
     metal2:{name:"none",purity:0},
     inUse:false,
     addOre: function(added){
-        console.log(forge);
+        // console.log(forge);
         if ( (this.metal1.name!="none"&&this.metal1.name!=added.metal) && (this.metal2.name!="none"&&this.metal2.name!=added.metal) ){
             alert("You can't put a third type of metal in the forge!");
             return false;
@@ -34,17 +34,21 @@ var forge = {
         if(this.metal1.name==="none"){
             this.metal1.name = added.metal;
             this.metal1.purity += added.purity;
+            this.metal1.purity.toFixed(2);
             return true;
         } else if (this.metal2.name==="none"&&this.metal1.name!=added.metal){
             this.metal2.name = added.metal;
             this.metal2.purity += added.purity;
+            this.metal2.purity.toFixed(2);
             return true;
         } 
         if (this.metal1.name===added.metal){
             this.metal1.purity += added.purity;
+            this.metal1.purity.toFixed(2);
             return true;
         } else if (this.metal2.name===added.metal){
             this.metal2.purity += added.purity;
+            this.metal2.purity.toFixed(2);
             return true;
         }
     },
@@ -71,20 +75,20 @@ login.addEventListener('submit', e => {
 //Message chatting feature handler
 entry.addEventListener('submit', e => {
     e.preventDefault();
-        var send = player.name + ": " + chattext.value;
+        var send = "<p style='color:red'>" + player.name + ": <span style='color:yellow'>" + chattext.value + "</span></p>";
     socket.emit('chat', {msg:send});
     chattext.value = " ";
 });
 
 //Handshaking client server connection
 socket.on('handshaking', data => {
-    console.log('handed up id: ', data.id,data.tick);
+    console.log('handshaking pack: ', data);
     localTickOn = data.tick;
     localId = data.id;
     maps = data.maps;
-    forge.recipes = data.forge.recipes;
-    console.log(maps);
-
+    Forge.recipes = data.forge.recipes;
+    // console.log(maps);
+    // console.log(forge);
 });
 //popup alerts from server
 socket.on('alert', data => {
@@ -95,6 +99,9 @@ socket.on('alert', data => {
 socket.on('msg', data => {
     let post = document.createElement('li');
     post.innerHTML = data.msg;
+    if(data.color){
+        post.style = `color:${data.color}`;
+    }
     // console.log('innerhtml: ',post);
     msgs.appendChild(post);
     msgs.scrollTop = msgs.scrollHeight;
@@ -225,28 +232,28 @@ function charDisplay(atChest){
     let character = document.querySelector('#display');
     character.innerHTML = " ";
     let stats = document.createElement('p');
-    stats.innerHTML = player.name + " Statistics <BR> ";
-    stats.innerHTML += `Hitpoints: ${player.hp} / ${player.mHp}  |  Coins: ${player.coin} <BR>`;
-    stats.innerHTML += `Strength: ${player.str} | Dexterity: ${player.agi} | Defense: ${player.def} <BR>`;
-    stats.innerHTML += `Mining: ${player.mine} Xp/Tnl: ${player.mineXp} / ${player.mineTnl} | Forging: ${player.forge} Xp/Tnl: ${player.forgeXp} / ${player.forgeTnl} <BR>`;
-    stats.innerHTML += `Woodcutting: ${player.chop} Xp/Tnl: ${player.chopXp} / ${player.chopTnl} | Crafting: ${player.craft} Xp/Tnl: ${player.craftXp} / ${player.craftTnl} <BR>`;
-    stats.innerHTML += `Fishing: ${player.fish} Xp/Tnl: ${player.fishXp} / ${player.fishTnl} | Cooking: ${player.cook} Xp/Tnl: ${player.cookXp} / ${player.cookTnl} <BR>`;
-    stats.innerHTML += `Carrying ${player.kg} kgs out of possible ${player.maxKg}. <BR>`;
-    stats.innerHTML += `Player is currently doing ${player.doFlag}. <BR>`;
-    if(player.gear.tool.length>0){
-        stats.innerHTML += `Currently using ${player.gear.tool[0].name} <br>`
+    stats.innerHTML = spanner(player.name,"violet") + " Statistics <BR> ";
+    stats.innerHTML += `Hitpoints: ${spanner(player.hp,"cyan")}/${spanner(player.mHp,"blue")} | Coins: ${spanner(player.coin,"yellow")} <br>`;
+    stats.innerHTML += `Strength: ${spanner(player.str,"white")} | Dexterity: ${spanner(player.agi,"white")} | Defense: ${spanner(player.def,"white")} <BR>`;
+    stats.innerHTML += `Mining: ${spanner(player.mine,"green")} Xp/Tnl: ${spanner(player.mineXp,"white")} / ${spanner(player.mineTnl,"yellow")} | Forging: ${spanner(player.forge,"green")} Xp/Tnl: ${spanner(player.forgeXp,"white")} / ${spanner(player.forgeTnl,"yellow")} <BR>`;
+    stats.innerHTML += `Woodcutting: ${spanner(player.chop,"green")} Xp/Tnl: ${spanner(player.chopXp,"white")} / ${spanner(player.chopTnl,"yellow")} | Crafting: ${spanner(player.craft,"green")} Xp/Tnl: ${spanner(player.craftXp,"white")} / ${spanner(player.craftTnl,"yellow")} <BR>`;
+    stats.innerHTML += `Fishing: ${spanner(player.fish,"green")} Xp/Tnl: ${spanner(player.fishXp,"white")} / ${spanner(player.fishTnl,"yellow")} | Cooking: ${spanner(player.cook,"green")} Xp/Tnl: ${spanner(player.cookXp,"white")} / ${spanner(player.cookTnl,"yellow")} <BR>`;
+    stats.innerHTML += `Carrying ${spanner(player.kg,"cyan")} kgs out of possible ${spanner(player.maxKg,"blue")}. <BR>`;
+    stats.innerHTML += `<span style="color:green"> Player is currently doing: ${spanner(player.doFlag,"orange")}. </span><BR>`;
+    if(player.gear.Tool.length>0){
+        stats.innerHTML += `Currently using ${spanner(player.gear.tool[0].name,"orange")} <br>`
     } else {
         stats.innerHTML += `You are not currently using anything for a tool. <br>`;
     }
     stats.innerHTML += `<a href="javascript:equipDisplay();"> Show Equipment </a> <br>`;
-    stats.innerHTML += "Currently carrying in backpack: ";
+    stats.innerHTML += `<span style="color:violet">Currently carrying in backpack: </span>`;
     character.appendChild(stats);
     item = document.createElement('P');
     if(atChest){
         for(i in player.backpack){
             item.innerHTML += `A ${player.backpack[i].name} - ${player.backpack[i].kg} kgs <a href="javascript:putChest(${i});"> store </a> `;
         }
-    } else if (forge.inUse===true){
+    } else if (player.PCforge.inUse===true){
         for(i in player.backpack){
             item.innerHTML += `A ${player.backpack[i].name}`;
             if(player.backpack[i].type==="ore"){
@@ -277,7 +284,7 @@ function equipDisplay(){
         // console.log(player.gear[key],key);
         if(player.gear[key].length){
             var gear = player.gear[key][0];
-            item.innerHTML = `${key}: A ${gear.name} `;
+            item.innerHTML = `${key}: A ${spanner(gear.name,"white")} `;
             let btn = document.createElement('button');
             btn.innerText = "info";
             btn.onclick = function () {
@@ -291,7 +298,7 @@ function equipDisplay(){
             }
             item.appendChild(btn2);
         } else{
-            item.innerHTML = `${key}: nothing.`;
+            item.innerHTML = `${key}: <span style="color:grey"> nothing. </span>`;
         }
         action.appendChild(item);
     }
@@ -300,7 +307,7 @@ function equip(num){
     let item = player.backpack[num];
     player.backpack.splice(num,1);
     if(item.type==="tool"){
-        if(player.gear.tool.length>0){
+        if(player.gear.Tool.length>0){
             let removed = player.gear.tool[0];
             player.gear.tool.pop();
             player.backpack.push(removed);
@@ -346,8 +353,8 @@ function putChest(num){
     player.chest.push(item);
     player.kg -= item.kg;
     // itemDisplay(item);
-    if(player.gear.tool.length>0&&item.name===player.gear.tool[0].name){
-        player.gear.tool.pop();
+    if(player.gear.Tool.length>0&&item.name===player.gear.Tool[0].name){
+        player.gear.Tool.pop();
     } else {
         player.backpack.splice(num,1);
     }
@@ -356,21 +363,21 @@ function putChest(num){
     storage();
 }
 function itemDisplay(item){
-    console.log('displaying');
+    // console.log('displaying');
     action.innerHTML = " ";
-    console.log('Displaying item: ',item);
+    // console.log('<span style="color"Displaying item: ',item);
     let disp = document.createElement('p');
-    disp.innerHTML = item.name;
-    disp.innerHTML += `<br> Of type: ${item.type} with a level requirement to use of ${item.req}.`;
+    disp.innerHTML = spanner(item.name,"violet");
+    disp.innerHTML += `<br> Of type: ${spanner(item.type,"grey")} with a level requirement to use of ${spanner(item.req,"orange")}.`;
     if(item.stackable){
         disp.innerHTML += "<br> These materials can be stacked.";
     } else {
         disp.innerHTML += "<br> This item cannot be stacked.";
     }
     if(item.purity){
-        disp.innerHTML += `<br> This ore is ${item.purity*100}% pure.`;
+        disp.innerHTML += `<br> This ore is ${spanner(item.purity*100,"orange")}% pure.`;
     }
-    disp.innerHTML += `<br> Weight: ${item.kg}`;
+    disp.innerHTML += `<br> Weight: ${spanner(item.kg,"yellow")}`;
     action.appendChild(disp);
 }
 function unstack(num){
@@ -385,7 +392,7 @@ function unstack(num){
 function stackThis(itemName){
     console.log('stacking item: ',itemName);
     let msg = document.createElement('p');
-    msg.innerHTML = `You stack together all the ${itemName}'s you have.`;
+    msg.innerHTML = `<span style="color:grey"> You stack together all the ${spanner(itemName,"white")}'s you have.`;
     let pack = player.backpack;
     let stack = {
         name:"stacked " + itemName,
@@ -402,6 +409,7 @@ function stackThis(itemName){
             stack.kg+=pack[i].kg;
             stack.quantity++;
             stack.pack.push(pack[i]);
+            stack.req=pack(i).req;
         }
     }
     // console.log(stack);
@@ -412,36 +420,56 @@ function stackThis(itemName){
 //forging functions
 function putInForge(num){
     let ore = player.backpack[num];
-    if(forge.addOre(ore)){
+    let forge = player.PCforge;
+    if(Forge.addOre(ore)){
         // console.log('put in forge worked...',forge.metal1,forge.metal2);
         player.backpack.splice(num,1);
-        player.PCforge = forge;
+        player.PCforge = Forge;
         socket.emit('load forge', {num:num});
+        // console.log('player pcForge after add: ',player.PCforge);
     }
 }
 function smelt(lvl,num,all){
-    let item = forge.recipes[lvl][num];
+    let item = Forge.recipes[lvl][num];
+    let allow1 = false; let allow2 = false;
+    let forge = player.PCforge;
     // console.log('smelting forge method: ', item);
-    if(item.metal1===forge.metal1.name&&item.metal1!=item.metal2&&forge.metal1.purity>=.5){
-        forge.metal1.purity -= .5;
-    } else if(item.metal1===forge.metal2.name&&item.metal1!=item.metal2&&forge.metal2.purity>=.5){
-        forge.metal2.purity -= .5;
-    } else if(item.metal1===forge.metal1.name&&item.metal1===item.metal2&&forge.metal1.purity>=1){
-        forge.metal1.purity -= 1;
-    } else if(item.metal===forge.metal2.name&&item.metal1===item.metal2&&forge.metal2.purity>=1){
-        forge.metal2.purity -= 1;
-    }
-    if(item.metal2===forge.metal1.name&&item.metal1!=item.metal2&&forge.metal1.purity>=.5){
-        forge.metal1.purity -= .5;
-    } else if(item.metal2===forge.metal2.name&&item.metal1!=item.metal2&&forge.metal2.purity>=.5){
-        forge.metal2.purity -= .5;
-    }
-    socket.emit('smelting attempt',{rec:[lvl,num],forge:[player.PCforge.metal1,player.PCforge.metal2],all});
+    // if(item.metal1===forge.metal1.name&&item.metal1!=item.metal2&&forge.metal1.purity>=.5){
+    //     forge.metal1.purity -= .5;
+    //     allow1 = true;
+    // } else if(item.metal1===forge.metal2.name&&item.metal1!=item.metal2&&forge.metal2.purity>=.5){
+    //     forge.metal2.purity -= .5;
+    //     allow2 = true;
+    // } else if(item.metal1===forge.metal1.name&&item.metal1===item.metal2&&forge.metal1.purity>=1){
+    //     forge.metal1.purity -= 1;
+    //     allow1 = true; allow2 = true;
+    // } else if(item.metal1===forge.metal2.name&&item.metal1===item.metal2&&forge.metal2.purity>=1){
+    //     forge.metal2.purity -= 1;
+    //     allow1 = true; allow2 = true;
+    // } 
+    // // console.log(item.metal1,item.metal2,forge);
+    // if(item.metal2===forge.metal1.name&&item.metal1!=item.metal2&&forge.metal1.purity>=.5){
+    //     forge.metal1.purity -= .5;
+    //     allow1 = true;
+    // } else if(item.metal2===forge.metal2.name&&item.metal1!=item.metal2&&forge.metal2.purity>=.5){
+    //     forge.metal2.purity -= .5;
+    //     allow2 = true;
+    // }
+    // if(allow1===true&&allow2===true){
+    //     console.log('smelting attempt forge is: ',forge);
+    //     socket.emit('smelting attempt',{rec:[lvl,num],forge:[player.PCforge.metal1,player.PCforge.metal2],all});
+    // } else {
+
+    //     console.log('cant smelt',allow1,allow2);
+    // }
+    // socket.emit('smelting attempt',{rec:[lvl,num],forge:[player.PCforge.metal1,player.PCforge.metal2],all});
+    socket.emit('smelting attempt',{rec:[lvl,num],all});
+    forging();
 }
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
     homeTick++;
-    if(homeTick%200===0){
+    if(homeTick%400===0){
         let post = document.createElement('li');
         post.innerText = "You've been logged on for "+homeTick+" ticks...";
         msgs.appendChild(post);
@@ -450,7 +478,7 @@ socket.on('Tick', data =>{
     if(data.length>0){
         var syncTick = data[0].tick;
     }
-    if(syncTick%40===0){
+    if(syncTick%200===0){
         console.log("server at ",data[0].tick," ticks...");
     }
     // console.log(localId,data);
@@ -524,17 +552,18 @@ socket.on('chest' ,()=> {
 });
 socket.on('forge', forging);
 function forging(){
-    forge.inUse=true;
+    player.PCforge.inUse=true;
+    forge = player.PCforge;
     charDisplay();
     action.innerHTML = "";
-    action.innerHTML += forge.name + "<br>";
+    action.innerHTML += Forge.name + "<br>";
     action.innerHTML += `Prime Metal: ${forge.metal1.name} of total Purity: ${forge.metal1.purity}`;
     for(let i = 0; i < player.forge+1;i++){
         for(j in forge.recipes[i]){
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
-            console.log('recipe ingredients: ',one,two);
+            // console.log('recipe ingredients: ',one,two);
             if(one===two){
-                console.log('one is two',one,forge.metal1.name,forge.metal1.purity);
+                // console.log('one is two',one,forge.metal1.name,forge.metal1.purity);
                 if( forge.metal1.name===one&&forge.metal1.purity>=1 ){
                 action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
                 action.innerHTML += ` <br> <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
@@ -552,7 +581,7 @@ function forging(){
         for(j in forge.recipes[i]){
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
             if(one===two){
-                console.log('second recipe: ',one,forge.metal2.name );
+                // console.log('second recipe: ',one,forge.metal2.name );
                 if( forge.metal2.name===one&&forge.metal2.purity>=1 ){
                     action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
                     action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
@@ -567,8 +596,8 @@ function forging(){
     action.innerHTML += `<a href="javascript:forge.empty(2);"> Empty Secondary </a> <br>`;   
 }
 socket.on('reforge', data => {
-    console.log('reforging packet: ',data);
-    console.log('reforge data.all',data.data.all);
+    // console.log('reforging packet: ',data);
+    // console.log('reforge data.all',data.data.all);
     forging();
     smelt(data.data.all[0],data.data.all[1],true);
 
@@ -586,7 +615,7 @@ document.onkeydown = function(event){
     charDisplay();
     if(localId===0){
         return;}else{
-            forge.inUse=false;
+            player.PCforge.inUse=false;
     if(event.keyCode === 68){  //d
         space = map[player.ypos][player.xpos+1];
         socket.emit('key press',{inputDir:'right', target:space, state:true, id:localId});
@@ -605,6 +634,8 @@ document.onkeydown = function(event){
     }
     }
 }
-
+function spanner(input,color){
+    return `<span style="color:${color}"> ${input} </span>`;
+}
 
 console.log(' client script loaded');

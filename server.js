@@ -18,14 +18,15 @@ const maps = require('./lib/maps');
 //Global Variablies
 let SOCKET_LIST = {};
 var PLAYER_LIST = {};
+let forge = new nod.Forge();
 //Socket.io handling for client/server communications
 io.on('connection', socket => {
     console.log('a client has connected');
     socket.id = Math.random();
     SOCKET_LIST[socket.id] = socket;
-    let forge = nod.forge;
     socket.emit('handshaking', {id:socket.id,maps,tick:ticker,forge});
     socket.on('chat', data => {
+        console.log(data);
         io.emit('msg', data);
     });
 
@@ -45,7 +46,7 @@ io.on('connection', socket => {
             //    }
             // } else {
             console.log('new user');
-            let tell = "---<"+user.name+">-- "+"has just logged in!";
+            let tell = "<p style='color:red'>---"+user.name+"--- "+"<span style='color:white'>has just logged in!</span></p>";
             socket.emit('msg',{msg:tell});
             player = new pc.Player(user.name,user.phrase,socket.id);
             player.init();
@@ -68,6 +69,7 @@ io.on('connection', socket => {
                 PLAYER_LIST[socket.id].backpack.push(removed);
             }
             PLAYER_LIST[socket.id].gear.tool.push(item);
+            socket.emit('msg',{msg:`You equipped the ${item.name} as your tool.`,color:'light gray'});
         }
         PLAYER_LIST[socket.id].backpack.splice(data.index,1);
         let player = PLAYER_LIST[socket.id];
@@ -79,6 +81,7 @@ io.on('connection', socket => {
         PLAYER_LIST[socket.id].gear[data.key].pop();
         PLAYER_LIST[socket.id].backpack.push(item);
         let player = PLAYER_LIST[socket.id];
+        socket.emit('msg',{msg:`You stopped using the ${item.name} and put it in your backpack.`,color:'dark gray'});
         socket.emit('player update', {player,atChest:false});
     });
     socket.on('chest to inv', data => {
@@ -136,14 +139,11 @@ io.on('connection', socket => {
         socket.emit('forge');
     });
     socket.on('smelting attempt', data => {
-        let recipe = nod.forge.recipes[data.rec[0]][data.rec[1]];
+        let recipe = forge.recipes[data.rec[0]][data.rec[1]];
         // console.log('trying to smelt',recipe);
-        console.log('smelting data',data.forge);
-        PLAYER_LIST[socket.id].PCforge.metal1=data.forge[0];
-        PLAYER_LIST[socket.id].PCforge.metal2=data.forge[1];
-        if(data.forge[0].purity+data.forge[1].purity>=1){
+        console.log('smelting data',data);
              // console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
-            PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1]);
+        if(PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1])){
             // console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
             PLAYER_LIST[socket.id].data=recipe;
             PLAYER_LIST[socket.id].doFlag='smelting';
@@ -153,7 +153,7 @@ io.on('connection', socket => {
             }
             socket.emit('msg',{msg:`You begin smelting a ${recipe.name} at the forge.`});
         } else {
-            socket.emit('msg',{msg:"You do not have enough ore to continue your smelting..."});
+            socket.emit('msg',{msg:"You do not have enough ore to continue your smelting...",color:'pink'});
             PLAYER_LIST[socket.id].doFlag = 'nothing';
             PLAYER_LIST[socket.id].data = {};
             let player = PLAYER_LIST[socket.id];
@@ -248,11 +248,11 @@ setInterval( function () {
                             if(PLAYER_LIST[i].liftable(success[0])){
                                 PLAYER_LIST[i].backpack.push(success[0]);
                                 PLAYER_LIST[i].kg+= success[0].kg;
-                                socket.emit('msg',{msg:`You successfully mine a chunk of ${success[0].name} with a purity of ${success[0].purity}, weighing ${success[0].kg} and gain${success[1]} xp.`});
+                                socket.emit('msg',{msg:`You successfully mine a chunk of ${success[0].name} with a purity of ${success[0].purity}, weighing ${success[0].kg} and gain${success[1]} xp.`,color:'yellow'});
                                 if(PLAYER_LIST[i].mineXp>=PLAYER_LIST[i].mineTnl){
                                     PLAYER_LIST[i].mine++;
                                     PLAYER_LIST[i].mineTnl =40*PLAYER_LIST[i].mine*1.2;
-                                    socket.emit('msg',{msg:`Your mining level has increased to ${PLAYER_LIST[i].mine}!`});
+                                    socket.emit('msg',{msg:`Your mining level has increased to ${PLAYER_LIST[i].mine}!`,color:'cyan'});
                                 }
                                 socket.emit('player update', {player:PLAYER_LIST[i],atChest:false});
                             } else {
@@ -286,22 +286,22 @@ setInterval( function () {
                         if(PLAYER_LIST[i].forgeXp>=PLAYER_LIST[i].forgeTnl){
                             PLAYER_LIST[i].forge++;
                             PLAYER_LIST[i].forgeTnl =40*PLAYER_LIST[i].forge*1.2;
-                            socket.emit('msg',{msg:`Your forging level has increased to ${PLAYER_LIST[i].forge}!`});
+                            socket.emit('msg',{msg:`Your forging level has increased to ${PLAYER_LIST[i].forge}!`,color:'cyan'});
                         }
                         // console.log('the forge after smelting: ',PLAYER_LIST[i].PCforge);
                         // console.log('smelting weight bug',bar.kg,PLAYER_LIST[i].kg,PLAYER_LIST[i].maxKg);
                         if(bar[0].kg+PLAYER_LIST[i].kg<=PLAYER_LIST[i].maxKg){
                             PLAYER_LIST[i].kg+=bar[0].kg;
                             PLAYER_LIST[i].backpack.push(bar[0]);
-                            socket.emit('msg',{msg:result});
+                            socket.emit('msg',{msg:result,color:'yellow'});
                             socket.emit('player update', {player:PLAYER_LIST[i],atChest:false});
                         } else {
                             result += ` but you can't carry that much so it sizzles away...`;
-                            socket.emit('msg',{msg:result});
+                            socket.emit('msg',{msg:result,color:'gray'});
                             socket.emit('player update', {player:PLAYER_LIST[i],atChest:false});
                         }
                     } else {
-                        socket.emit('msg',{msg:"You failed at the smelting attempt."});
+                        socket.emit('msg',{msg:"You failed at the smelting attempt.",color:'gray'});
                     }
                     socket.emit('forge');    
                     if(PLAYER_LIST[i].doFlag==='smelting all'){
