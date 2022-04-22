@@ -10,6 +10,7 @@
     height:200px;
     border:2px solid red;
     overflow:scroll;
+    overflow-x:hidden;
     scroll-behavior: auto;
     scroll-behavior: smooth;
 }
@@ -31,16 +32,17 @@
 }
 #display {
     width:390px;
-    height:396px;
+    height:350px;
     color:red;
     border:2px solid red;
 }
 #action {
     width:390px;
-    height:196px;
+    height:250px;
     color:green;
     border:2px dotted powderblue;
-
+    overflow:scroll;
+    overflow-x:hidden;
 }
 canvas {
     float:left;

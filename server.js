@@ -63,12 +63,12 @@ io.on('connection', socket => {
         var item = PLAYER_LIST[socket.id].backpack[data.index];
         // console.log('trying to equip: ',item);
         if(item.type==="tool"){
-            if(PLAYER_LIST[socket.id].gear.tool.length>0){
-                let removed = PLAYER_LIST[socket.id].gear.tool[0];
-                PLAYER_LIST[socket.id].gear.tool.pop();
+            if(PLAYER_LIST[socket.id].gear.Tool.length>0){
+                let removed = PLAYER_LIST[socket.id].gear.Tool[0];
+                PLAYER_LIST[socket.id].gear.Tool.pop();
                 PLAYER_LIST[socket.id].backpack.push(removed);
             }
-            PLAYER_LIST[socket.id].gear.tool.push(item);
+            PLAYER_LIST[socket.id].gear.Tool.push(item);
             socket.emit('msg',{msg:`You equipped the ${item.name} as your tool.`,color:'light gray'});
         }
         PLAYER_LIST[socket.id].backpack.splice(data.index,1);
@@ -127,7 +127,7 @@ io.on('connection', socket => {
         PLAYER_LIST[socket.id].backpack.splice(data.num,1);
         PLAYER_LIST[socket.id].PCforge.addOre(ore);
         let player = PLAYER_LIST[socket.id];
-        console.log('loaded into forge: ',player.PCforge);
+        // console.log('loaded into forge: ',player.PCforge);
         player.kg -= ore.kg;
         socket.emit('player update', {player,atChest:false});
         socket.emit('forge');
@@ -142,9 +142,9 @@ io.on('connection', socket => {
         let recipe = forge.recipes[data.rec[0]][data.rec[1]];
         // console.log('trying to smelt',recipe);
         console.log('smelting data',data);
-             // console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
+             console.log('the forge before smelt: ',PLAYER_LIST[socket.id].PCforge);
         if(PLAYER_LIST[socket.id].PCforge.smelt(data.rec[0],data.rec[1])){
-            // console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
+            console.log('post smelt method: ',PLAYER_LIST[socket.id].PCforge);
             PLAYER_LIST[socket.id].data=recipe;
             PLAYER_LIST[socket.id].doFlag='smelting';
             if(data.all){
@@ -171,7 +171,11 @@ io.on('connection', socket => {
             collision(data.id,player.xpos,player.ypos,data.target);
         }
     });
-
+    socket.on('debug lvl',data => {
+        PLAYER_LIST[socket.id].levelUp(data);
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update', {player,atChest:false});
+    });
 });
 //Collision for map interaction
 function collision(id,x,y,targ){
@@ -214,7 +218,7 @@ function collision(id,x,y,targ){
 let ticker = 0;
 setInterval( function () {
     ticker++;
-    if(ticker % 20===0){
+    if(ticker % 200===0){
         console.log(`Running steady for ${ticker} game ticks.`);
     }
     let pack = [];

@@ -275,6 +275,7 @@ function charDisplay(atChest){
         }
     }
     character.appendChild(item);
+    character.innerHTML += `<br> <br><a href="javascript:levelAll();"> debug level up to 5 </a>`;
 }
 //inventory handling functions
 function equipDisplay(){
@@ -308,11 +309,11 @@ function equip(num){
     player.backpack.splice(num,1);
     if(item.type==="tool"){
         if(player.gear.Tool.length>0){
-            let removed = player.gear.tool[0];
-            player.gear.tool.pop();
+            let removed = player.gear.Tool[0];
+            player.gear.Tool.pop();
             player.backpack.push(removed);
         }
-        player.gear.tool.push(item);
+        player.gear.Tool.push(item);
     }
     // console.log('backpack after equip',player.backpack);
     equipDisplay();
@@ -466,6 +467,9 @@ function smelt(lvl,num,all){
     socket.emit('smelting attempt',{rec:[lvl,num],all});
     forging();
 }
+function levelAll(){
+    socket.emit('debug lvl', 5);
+}
 //recieves player x,y coords from server and draws to screen
 socket.on('Tick', data =>{
     homeTick++;
@@ -499,7 +503,7 @@ function converse(NPC,flow){
     action.innerHTML =" ";
     console.log('npc: ', NPC);
     const NPCname = document.createElement('p');
-    NPCname.innerText = NPC.name;
+    NPCname.innerHTML = spanner(NPC.name,"violet");
     action.appendChild(NPCname);
     let message = document.createElement('p');
     message.innerText = NPC.conversations[flow].message;
@@ -523,7 +527,7 @@ socket.on('poi', poi => {
     post.innerHTML = poi.poi.msg;
     action.appendChild(post);
     let msg = document.createElement('li'); 
-    msg.innerText = "PoI:: " + poi.poi.msg;
+    msg.innerText = "PoI:: " + spanner(poi.poi.msg,"white");
     msgs.appendChild(msg);
 });
 //server reception of objects
@@ -535,15 +539,15 @@ socket.on('node',data => {
     console.log("node displaying",data);
     action.innerHTML = " ";
     let node = document.createElement('p');
-    node.innerHTML = data.name;
-    node.innerHTML += `<br> Level requirement: ${data.req}`;
-    node.innerHTML += `<br> Success rate: ${data.baseDiff*100}% plus 1% per level in this skill. `;
-    node.innerHTML += `<br> Xp awarded per success: ${data.xp}`;
+    node.innerHTML = spanner(data.name,"violet");
+    node.innerHTML += `<br> Level requirement: ${spanner(data.req,"yellow")}`;
+    node.innerHTML += `<br> Success rate: ${spanner(data.baseDiff*100,"yellow")}% plus 1% per level in this skill. `;
+    node.innerHTML += `<br> Xp awarded per success: ${spanner(data.xp,"yellow")}`;
     if(data.trunk){
-        node.innerHTML += `<br> It takes ${data.trunk} successful swings to harvest a log.`;
+        node.innerHTML += `<br> It takes ${spanner(data.trunk,"orange")} successful swings to harvest a log.`;
     }
     if(data.lowest){
-        node.innerHTML += `<br> The quality of the ore ranges from ${data.lowest*100} - ${data.highest*100}%.`
+        node.innerHTML += `<br> The quality of the ore ranges from ${spanner(data.lowest*100,"white")} - ${spanner(data.highest*100,"white")}%.`
     }
     action.appendChild(node);
 });
@@ -556,10 +560,11 @@ function forging(){
     forge = player.PCforge;
     charDisplay();
     action.innerHTML = "";
-    action.innerHTML += Forge.name + "<br>";
-    action.innerHTML += `Prime Metal: ${forge.metal1.name} of total Purity: ${forge.metal1.purity}`;
+    action.innerHTML += spanner(Forge.name,"orange") + "<br>";
+    action.innerHTML += `Prime Metal: ${spanner(forge.metal1.name,"cyan")}, Total Purity: ${spanner(forge.metal1.purity,"blue")}`;
     for(let i = 0; i < player.forge+1;i++){
         for(j in forge.recipes[i]){
+            console.log(i,j,Forge.recipes[i][j]);
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
             // console.log('recipe ingredients: ',one,two);
             if(one===two){
@@ -568,15 +573,10 @@ function forging(){
                 action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
                 action.innerHTML += ` <br> <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
                 }
-            } else if ( one===forge.metal1.name&&two===forge.metal2.name ){
-                if(forge.metal1.purity>=.5&&forge.metal2.purity>=.5){
-                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> | `;
-                    action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
-                }
-            }
+            } 
         }
     }
-    action.innerHTML += `<br> Secondary Metal: ${forge.metal2.name} of total Purity: ${forge.metal2.purity}`;
+    action.innerHTML += `<br> Secondary Metal: ${spanner(forge.metal2.name,"cyan")}, Total Purity: ${spanner(forge.metal2.purity,"blue")}`;
     for(let i = 0; i < player.forge+1;i++){
         for(j in forge.recipes[i]){
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
@@ -585,10 +585,20 @@ function forging(){
                 if( forge.metal2.name===one&&forge.metal2.purity>=1 ){
                     action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
                     action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
+                }
             }
-            } else if (one===forge.metal2.name&&forge.metal2.purity>=1){
-                action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
-                action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
+        }
+    }
+    action.innerHTML += `<br> <span style="color:violet"> Making Alloys </span> <br>`;
+    for(let i = 0; i < player.forge+1; i++){
+        for(j in forge.recipes[1]){
+            let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
+            if ( (one===forge.metal1.name&&two===forge.metal2.name) || (one===forge.metal2.name&&two===forge.metal1.name) ){
+                if(forge.metal1.purity>=.5&&forge.metal2.purity>=.5){
+                    action.innerHTML += `<br> Making Alloys <br>`;
+                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> | `;
+                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
+                }
             }
         }
     }
