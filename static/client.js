@@ -64,6 +64,7 @@ var Forge = {
         socket.emit('empty forge', {num:num});
     }
 }
+var recipeBook = [];
 
 //Event listener for login form submit
 login.addEventListener('submit', e => {
@@ -241,7 +242,7 @@ function charDisplay(atChest){
     stats.innerHTML += `Carrying ${spanner(player.kg,"cyan")} kgs out of possible ${spanner(player.maxKg,"blue")}. <BR>`;
     stats.innerHTML += `<span style="color:green"> Player is currently doing: ${spanner(player.doFlag,"orange")}. </span><BR>`;
     if(player.gear.Tool.length>0){
-        stats.innerHTML += `Currently using ${spanner(player.gear.tool[0].name,"orange")} <br>`
+        stats.innerHTML += `Currently using ${spanner(player.gear.Tool[0].name,"orange")} <br>`
     } else {
         stats.innerHTML += `You are not currently using anything for a tool. <br>`;
     }
@@ -410,7 +411,7 @@ function stackThis(itemName){
             stack.kg+=pack[i].kg;
             stack.quantity++;
             stack.pack.push(pack[i]);
-            stack.req=pack(i).req;
+            stack.req=pack[i].req;
         }
     }
     // console.log(stack);
@@ -467,93 +468,6 @@ function smelt(lvl,num,all){
     socket.emit('smelting attempt',{rec:[lvl,num],all});
     forging();
 }
-function levelAll(){
-    socket.emit('debug lvl', 5);
-}
-//recieves player x,y coords from server and draws to screen
-socket.on('Tick', data =>{
-    homeTick++;
-    if(homeTick%400===0){
-        let post = document.createElement('li');
-        post.innerText = "You've been logged on for "+homeTick+" ticks...";
-        msgs.appendChild(post);
-    }
-    draw(maps.mapArr);
-    if(data.length>0){
-        var syncTick = data[0].tick;
-    }
-    if(syncTick%200===0){
-        console.log("server at ",data[0].tick," ticks...");
-    }
-    // console.log(localId,data);
-    for(i in data){
-        if(data[i].id===localId){
-            ctx.fillStyle="yellow";
-            player.xpos = data[i].xpos;
-            player.ypos = data[i].ypos;
-            ctx.fillText("C",(player.xpos)*18,(player.ypos+1)*18);
-        } else {
-            ctx.fillStyle="white";
-            ctx.fillText("C",data[i].xpos*18,(data[i].ypos+1)*18);
-        }
-    }
-});
-//conversation with NPCs
-function converse(NPC,flow){
-    action.innerHTML =" ";
-    console.log('npc: ', NPC);
-    const NPCname = document.createElement('p');
-    NPCname.innerHTML = spanner(NPC.name,"violet");
-    action.appendChild(NPCname);
-    let message = document.createElement('p');
-    message.innerText = NPC.conversations[flow].message;
-    action.appendChild(message);
-    for ( i in NPC.conversations[flow].choice){
-        let btn = document.createElement('button');
-        btn.innerText = NPC.conversations[flow].choice[i];
-        let trigger = NPC.conversations[flow].answerI[i];
-        let NPCcopy = NPC;
-        btn.onclick = function () {
-            converse(NPCcopy,trigger);
-        }
-        action.appendChild(btn);
-    }
-}
-//Point of Interest display from server
-socket.on('poi', poi => {
-    // console.log(poi.poi.msg);
-    action.innerHTML = " ";
-    let post = document.createElement('p');
-    post.innerHTML = poi.poi.msg;
-    action.appendChild(post);
-    let msg = document.createElement('li'); 
-    msg.innerText = "PoI:: " + spanner(poi.poi.msg,"white");
-    msgs.appendChild(msg);
-});
-//server reception of objects
-socket.on('npc', npc => {
-    converse(npc,0);
-    console.log(npc);
-});
-socket.on('node',data => {
-    console.log("node displaying",data);
-    action.innerHTML = " ";
-    let node = document.createElement('p');
-    node.innerHTML = spanner(data.name,"violet");
-    node.innerHTML += `<br> Level requirement: ${spanner(data.req,"yellow")}`;
-    node.innerHTML += `<br> Success rate: ${spanner(data.baseDiff*100,"yellow")}% plus 1% per level in this skill. `;
-    node.innerHTML += `<br> Xp awarded per success: ${spanner(data.xp,"yellow")}`;
-    if(data.trunk){
-        node.innerHTML += `<br> It takes ${spanner(data.trunk,"orange")} successful swings to harvest a log.`;
-    }
-    if(data.lowest){
-        node.innerHTML += `<br> The quality of the ore ranges from ${spanner(data.lowest*100,"white")} - ${spanner(data.highest*100,"white")}%.`
-    }
-    action.appendChild(node);
-});
-socket.on('chest' ,()=> {
-    storage();
-});
 socket.on('forge', forging);
 function forging(){
     player.PCforge.inUse=true;
@@ -612,10 +526,131 @@ socket.on('reforge', data => {
     smelt(data.data.all[0],data.data.all[1],true);
 
 });
+//crafting table functions
+socket.on('crafting', data => {
+    // console.log(data);
+    recipeBook = data;
+    action.innerHTML = " ";
+    action.innerHTML += spanner('Crafting Table Recipes',"violet") + "<br>";
+    for(let i=0;i<player.craft+1;i++){
+        for(j in data[i]){
+            if(data[i][j]!=" "){
+                let thing = data[i][j];
+                action.innerHTML += `${spanner(thing.name,"white")} <a href="javascript:recipe(${i},${j});"> recipe </a> || <a href="javascript:craft(${i},${j});"> make </a><br>`;
+            }
+        }
+    }
+});
+function recipe(lvl,num){
+    action.innerHTML = " ";
+    action.innerHTML += `Recipe for ${spanner(recipeBook[lvl][num].name,"white")} <br>`;
+    action.innerHTML += `Ingredients: `;
+    for(let i = 0; i<recipeBook[lvl][num].ingredients.length;i++){
+        if(i===0){
+            action.innerHTML += `A ${recipeBook[lvl][num].ingredients[i]}`;
+        } else {
+            action.innerHTML += `, and a ${recipeBook[lvl][num].ingredients[i]}`;
+        }
+    } 
+    action.innerHTML += `. <br>`;
+    action.innerHTML += `Crafting Time: ${spanner(recipeBook[lvl][num].time,"white")} ticks<br>`;
+    action.innerHTML += `Experience Earned: ${spanner(recipeBook[lvl][num].xp,"white")} xp`;
+}
+function craft(lvl,num){
+    socket.emit('craft try',{lvl:lvl,num:num});
+}
+//recieves player x,y coords from server and draws to screen
+socket.on('Tick', data =>{
+    homeTick++;
+    if(homeTick%400===0){
+        let post = document.createElement('li');
+        post.innerText = "You've been logged on for "+homeTick+" ticks...";
+        msgs.appendChild(post);
+    }
+    draw(maps.mapArr);
+    if(data.length>0){
+        var syncTick = data[0].tick;
+    }
+    if(syncTick%200===0){
+        console.log("server at ",data[0].tick," ticks...");
+    }
+    // console.log(localId,data);
+    for(i in data){
+        if(data[i].id===localId){
+            ctx.fillStyle="yellow";
+            player.xpos = data[i].xpos;
+            player.ypos = data[i].ypos;
+            ctx.fillText("C",(player.xpos)*18,(player.ypos+1)*18);
+        } else {
+            ctx.fillStyle="white";
+            ctx.fillText("C",data[i].xpos*18,(data[i].ypos+1)*18);
+        }
+    }
+});
+//conversation with NPCs
+function converse(NPC,flow){
+    action.innerHTML =" ";
+    console.log('npc: ', NPC);
+    const NPCname = document.createElement('p');
+    NPCname.innerHTML = spanner(NPC.name,"violet");
+    action.appendChild(NPCname);
+    let message = document.createElement('p');
+    message.innerText = NPC.conversations[flow].message;
+    action.appendChild(message);
+    for ( i in NPC.conversations[flow].choice){
+        let btn = document.createElement('button');
+        btn.innerText = NPC.conversations[flow].choice[i];
+        let trigger = NPC.conversations[flow].answerI[i];
+        let NPCcopy = NPC;
+        btn.onclick = function () {
+            converse(NPCcopy,trigger);
+        }
+        action.appendChild(btn);
+    }
+}
+//Point of Interest display from server
+socket.on('poi', poi => {
+    // console.log(poi.poi.msg);
+    action.innerHTML = " ";
+    let post = document.createElement('p');
+    post.innerHTML = poi.poi.msg;
+    action.appendChild(post);
+    let msg = document.createElement('li'); 
+    msg.innerHTML = spanner("PoI:: ","yellow") + spanner(poi.poi.msg,"white");
+    msgs.appendChild(msg);
+});
+//server reception of objects
+socket.on('npc', npc => {
+    converse(npc,0);
+    console.log(npc);
+});
+socket.on('node',data => {
+    console.log("node displaying",data);
+    action.innerHTML = " ";
+    let node = document.createElement('p');
+    node.innerHTML = spanner(data.name,"violet");
+    node.innerHTML += `<br> Level requirement: ${spanner(data.req,"yellow")}`;
+    node.innerHTML += `<br> Success rate: ${spanner(data.baseDiff*100,"yellow")}% plus 1% per level in this skill. `;
+    node.innerHTML += `<br> Xp awarded per success: ${spanner(data.xp,"yellow")}`;
+    if(data.trunk){
+        node.innerHTML += `<br> It takes ${spanner(data.trunk,"orange")} successful swings to harvest a log.`;
+    }
+    if(data.lowest){
+        node.innerHTML += `<br> The quality of the ore ranges from ${spanner(data.lowest*100,"white")} - ${spanner(data.highest*100,"white")}%.`
+    }
+    action.appendChild(node);
+});
+socket.on('chest' ,()=> {
+    storage();
+});
 //server reboot event to tell client to refresh
 socket.on('reboot', () => {
     alert('Server has rebooted since you connected, please refresh your browser.');
 });
+//debug function to increase level
+function levelAll(){
+    socket.emit('debug lvl', 5);
+}
 //Keyboard reading controls for player movement
 document.onkeydown = function(event){
     // console.log('keypress');
