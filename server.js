@@ -240,10 +240,10 @@ setInterval( function () {
         var socket = SOCKET_LIST[PLAYER_LIST[i].id]
         if(!(PLAYER_LIST[i].doFlag==="nothing")){
             if(PLAYER_LIST[i].doFlag==="mining"){
-                if(PLAYER_LIST[i].gear.tool.length>0 && PLAYER_LIST[i].gear.tool[0].skill==="mine"){
+                if(PLAYER_LIST[i].gear.Tool.length>0 && PLAYER_LIST[i].gear.Tool[0].skill==="mine"){
                     if(PLAYER_LIST[i].mine>=PLAYER_LIST[i].data.req){
                         let rng = Math.random();
-                        let skill = (PLAYER_LIST[i].mine/100)+PLAYER_LIST[i].data.baseDiff+(PLAYER_LIST[i].gear.tool[0].bonus/100);
+                        let skill = (PLAYER_LIST[i].mine/100)+PLAYER_LIST[i].data.baseDiff+(PLAYER_LIST[i].gear.Tool[0].bonus/100);
                         // console.log("mining away with ",rng," as rng and ",skill," as modified success...");
                         if(rng<skill){
                             let success = PLAYER_LIST[i].data.onSuccess();

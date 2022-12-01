@@ -126,7 +126,7 @@ action.appendChild(loaded);
 var player={
     xpos:1,
     ypos:1,
-    gear:{tool:[]}
+    gear:{Tool:[]}
 }
 //draw map function
 function draw(map){
@@ -240,8 +240,9 @@ function charDisplay(atChest){
     stats.innerHTML += `Fishing: ${spanner(player.fish,"green")} Xp/Tnl: ${spanner(player.fishXp,"white")} / ${spanner(player.fishTnl,"yellow")} | Cooking: ${spanner(player.cook,"green")} Xp/Tnl: ${spanner(player.cookXp,"white")} / ${spanner(player.cookTnl,"yellow")} <BR>`;
     stats.innerHTML += `Carrying ${spanner(player.kg,"cyan")} kgs out of possible ${spanner(player.maxKg,"blue")}. <BR>`;
     stats.innerHTML += `<span style="color:green"> Player is currently doing: ${spanner(player.doFlag,"orange")}. </span><BR>`;
+    // console.log(player);
     if(player.gear.Tool.length>0){
-        stats.innerHTML += `Currently using ${spanner(player.gear.tool[0].name,"orange")} <br>`
+        stats.innerHTML += `Currently using ${spanner(player.gear.Tool[0].name,"orange")} <br>`
     } else {
         stats.innerHTML += `You are not currently using anything for a tool. <br>`;
     }
@@ -282,7 +283,7 @@ function equipDisplay(){
     action.innerHTML = "";
     for (const key in player.gear){
         let item = document.createElement('p');
-        // console.log(player.gear[key],key);
+        console.log(player.gear[key],key);
         if(player.gear[key].length){
             var gear = player.gear[key][0];
             item.innerHTML = `${key}: A ${spanner(gear.name,"white")} `;
@@ -305,11 +306,13 @@ function equipDisplay(){
     }
 }
 function equip(num){
+    console.log('equipping: ',num,' \n',player.backpack[num] );
     let item = player.backpack[num];
     player.backpack.splice(num,1);
     if(item.type==="tool"){
         if(player.gear.Tool.length>0){
             let removed = player.gear.Tool[0];
+            console.log('tool slot has an item that was removed: ',removed);
             player.gear.Tool.pop();
             player.backpack.push(removed);
         }
@@ -318,6 +321,7 @@ function equip(num){
     // console.log('backpack after equip',player.backpack);
     equipDisplay();
     socket.emit('equip',{index:num});
+    console.log('equipped finished, ',player);
 }
 function unequip(key){
     console.log(key);
@@ -410,7 +414,7 @@ function stackThis(itemName){
             stack.kg+=pack[i].kg;
             stack.quantity++;
             stack.pack.push(pack[i]);
-            stack.req=pack(i).req;
+            stack.req = pack[i].req;
         }
     }
     // console.log(stack);
@@ -622,10 +626,12 @@ document.onkeydown = function(event){
     player.doing = 'Nothing';
     var map = maps.mapArr;
     let space = map[player.ypos][player.xpos];
-    charDisplay();
+    charDisplay(false);
     if(localId===0){
-        return;}else{
-            player.PCforge.inUse=false;
+        return;
+    } else {
+        // console.log(localId, "running keydown");
+        player.PCforge.inUse=false;
     if(event.keyCode === 68){  //d
         space = map[player.ypos][player.xpos+1];
         socket.emit('key press',{inputDir:'right', target:space, state:true, id:localId});
