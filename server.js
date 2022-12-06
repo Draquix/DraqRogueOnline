@@ -14,6 +14,7 @@ const obj = require('./lib/objects');
 const nod = require('./lib/nodes');
 const pc = require('./lib/player');
 const maps = require('./lib/maps');
+const e = require('express');
 
 //Global Variablies
 let SOCKET_LIST = {};
@@ -133,6 +134,7 @@ io.on('connection', socket => {
         socket.emit('forge');
     });
     socket.on('empty forge', data => {
+        console.log('empty forge');
         PLAYER_LIST[socket.id].PCforge.empty(data.num);
         let player = PLAYER_LIST[socket.id];
         socket.emit('player update', {player,atChest:false});
@@ -165,12 +167,33 @@ io.on('connection', socket => {
     socket.on('key press', data => {
         // console.log('Key fired: ',data);
         var player = PLAYER_LIST[data.id];
-        PLAYER_LIST[socket.id].doFlag = "nothing";
+        PLAYER_LIST[socket.id].doFlag = "nothing"; PLAYER_LIST[socket.id].data = {};
         if(data.target===","||data.target==="."||data.target==="+"||data.target===";"){
             player.move(data.inputDir);
         } else {
             collision(data.id,player.xpos,player.ypos,data.target);
         }
+    });
+    socket.on('crafting attempt', data => {
+        console.log('craft attempt : ',data);
+        let attempt = false;
+        data.ingredients.forEach(element => {
+            console.log(element,attempt);
+            for (i in PLAYER_LIST[socket.id].backpack){
+                if(element==PLAYER_LIST[socket.id].backpack[i]){
+                    PLAYER_LIST[socket.id].backpack.splice(i,1);
+                    attempt = true;
+                }
+            }
+        });
+        if(attempt === true) {
+            PLAYER_LIST[socket.id].doFlag = "crafting at table";
+            PLAYER_LIST[socket.id].data = data;
+            PLAYER_LIST[socket.id].data.cc++;
+        } else {
+            socket.emit('msg',{msg:"An attempt at crafting was rejected for not having all needed materials.",color:'red'});
+        }
+      
     });
     socket.on('debug lvl',data => {
         PLAYER_LIST[socket.id].levelUp(data);
@@ -207,12 +230,12 @@ function collision(id,x,y,targ){
         PLAYER_LIST[id].data=node;      
         socket.emit("node",node);
     } else if (targ==="!"){
-        console.log('not implemented yet.');
+        socket.emit('craft',obj.recipeBook);
+        PLAYER_LIST[id].data=obj.recipeBook;
+        // console.log('not implemented yet.');
     } else if (targ==="="){
         socket.emit('forge');
-    }
-    
-    
+    }   
     console.log('collision target: ',x,y,targ);
 }
 //Async runtime for live gameplay -- first for update screen and draw player
@@ -315,6 +338,63 @@ setInterval( function () {
                     }
                     PLAYER_LIST[i].doFlag="nothing";
                     PLAYER_LIST[i].data = {};
+                }
+            }
+            if(PLAYER_LIST[i].doFlag==='crafting at table'){
+                console.log('currently crafting',PLAYER_LIST[i].data);
+                if(PLAYER_LIST[i].data.cc===PLAYER_LIST[i].data.time){
+                    let craft = PLAYER_LIST[i].data;
+                    console.log('successful craft: ',craft);
+                    let result = `You successfully crafted a ${craft.name} and gained ${craft.xp} XP points.`;
+                    PLAYER_LIST[i].craftXp += craft.xp;
+                    if(PLAYER_LIST[i].craftXp>=PLAYER_LIST[i].craftTnl){
+                        PLAYER_LIST[i].craft++; PLAYER_LIST[i].craftTnl = 40*PLAYER_LIST[i].craft*1.2;
+                        socket.emit('msg',{msg:"Your crafting has leveled up!"});
+                    }
+                    socket.emit('msg',{msg:result,color:'blue'});
+                }
+                PLAYER_LIST[i].data.cc++;
+
+            }
+            if(PLAYER_LIST[i].doFlag==="woodchopping"){
+                if(PLAYER_LIST[i].gear.Tool.length>0 && PLAYER_LIST[i].gear.Tool[0].skill==="chop"){
+                    if(PLAYER_LIST[i].chop>=PLAYER_LIST[i].data.req){
+                        var result = `You swing your axe at the ${PLAYER_LIST[i].data.name}... `;
+                        let rng = Math.random();
+                        let skill = (PLAYER_LIST[i].chop/100+PLAYER_LIST[i].gear.Tool[0].bonus/100+PLAYER_LIST[i].data.baseDiff);
+                        console.log("skill attempting choppy chopp chop ",rng,skill);
+                        if(rng<=skill){
+                            PLAYER_LIST[i].data.count--;
+                            result += ` and hit the trunk!`;
+                        } else {
+                            result += ` and miss the trunk with a wild spin! `;
+                        }
+                        if(PLAYER_LIST[i].data.count===0){
+                            let log = PLAYER_LIST[i].data.onSuccess();
+                            PLAYER_LIST[i].data.count = PLAYER_LIST[i].data.trunk;
+                            PLAYER_LIST[i].chopXp += log[1];
+                            if(PLAYER_LIST[i].liftable(log[0])){
+                                PLAYER_LIST[i].backpack.push(log[0]);
+                                PLAYER_LIST[i].kg += log[0].kg;
+                            }
+                            if(PLAYER_LIST[i].chopXp>=PLAYER_LIST[i].chopTnl){
+                                PLAYER_LIST[i].chop++;
+                                PLAYER_LIST[i].chopTnl = 40 * PLAYER_LIST[i].chop *1.2;
+                                socket.emit('msg',{msg:"Your woodcutting skill leveled up."});
+                            }
+                            result += `You get ${log[1]} Xp points and a ${log[0].name}. `;
+                        }
+                        socket.emit('msg',{msg:result,color:'yellow'});
+                        socket.emit('player update', {player:PLAYER_LIST[i],atChest:false});     
+                        } else {
+                            PLAYER_LIST[i].doFlag="nothing";
+                            PLAYER_LIST[i].data = {};
+                            socket.emit('msg',{msg:"You need to be using an axe to chop at trees.",color:'red'});
+                            }
+                } else {
+                    PLAYER_LIST[i].doFlag="nothing";
+                    PLAYER_LIST[i].data = {};
+                    socket.emit('msg',{msg:"You need to be using an axe to chop at trees.",color:'red'});
                 }
             }
         }

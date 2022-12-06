@@ -531,7 +531,7 @@ socket.on('poi', poi => {
     post.innerHTML = poi.poi.msg;
     action.appendChild(post);
     let msg = document.createElement('li'); 
-    msg.innerText = "PoI:: " + spanner(poi.poi.msg,"white");
+    msg.innerHTML = `PoI: ${spanner(poi.poi.msg,"cyan")} `;
     msgs.appendChild(msg);
 });
 //server reception of objects
@@ -558,6 +558,7 @@ socket.on('node',data => {
 socket.on('chest' ,()=> {
     storage();
 });
+//Forging Functions
 socket.on('forge', forging);
 function forging(){
     player.PCforge.inUse=true;
@@ -568,7 +569,7 @@ function forging(){
     action.innerHTML += `Prime Metal: ${spanner(forge.metal1.name,"cyan")}, Total Purity: ${spanner(forge.metal1.purity,"blue")}`;
     for(let i = 0; i < player.forge+1;i++){
         for(j in forge.recipes[i]){
-            console.log(i,j,Forge.recipes[i][j]);
+            // console.log(i,j,forge.recipes[i][j]);
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
             // console.log('recipe ingredients: ',one,two);
             if(one===two){
@@ -587,18 +588,18 @@ function forging(){
             if(one===two){
                 // console.log('second recipe: ',one,forge.metal2.name );
                 if( forge.metal2.name===one&&forge.metal2.purity>=1 ){
-                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
-                    action.innerHTML += `<br> <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
+                    action.innerHTML += `<br>*-- <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> |`;
+                    action.innerHTML += ` <a href="javascript:smelt(${i},${j},true);"> smelt all ${forge.recipes[i][j].name} </a>`;
                 }
             }
         }
     }
-    action.innerHTML += `<br> <span style="color:violet"> Making Alloys </span> <br>`;
+    // action.innerHTML += `<br> <span style="color:violet"> Making Alloys </span> <br>`;
     for(let i = 0; i < player.forge+1; i++){
         for(j in forge.recipes[i]){
             let one = forge.recipes[i][j].metal1; let two = forge.recipes[i][j].metal2;
             if ( (one===forge.metal1.name&&two===forge.metal2.name) || (one===forge.metal2.name&&two===forge.metal1.name) ){
-                if(forge.metal1.purity>=.5&&forge.metal2.purity>=.5){
+                if(forge.metal1.purity>=0.5&&forge.metal2.purity>=0.5){
                     action.innerHTML += `<br> Making Alloys <br>`;
                     action.innerHTML += ` <a href="javascript:smelt(${i},${j},false);"> smelt 1 ${forge.recipes[i][j].name} </a> | `;
                     action.innerHTML += ` <a href="javascript:smelt(${i},${j},true);"> smelt all </a>`;
@@ -606,8 +607,18 @@ function forging(){
             }
         }
     }
-    action.innerHTML += `<br> <a href="javascript:forge.empty(1);"> Empty Primary </a> <br>`;
-    action.innerHTML += `<a href="javascript:forge.empty(2);"> Empty Secondary </a> <br>`;   
+    action.innerHTML += `${spanner("<br>-----------","violet")}`
+    action.innerHTML += `<br> <a href="javascript:emptyF(1);"> Empty Primary </a> <br>`;
+    action.innerHTML += `<a href="javascript:emptyF(2);"> Empty Secondary </a> <br>`;   
+}
+function emptyF(num){
+    // console.log("Emptying forge... ",player.PCforge);
+    if(num==1){
+        player.PCforge.metal1={name:"none",purity:0};
+    } else if (num==2){
+        player.PCforge.metal2={name:"none",purity:0};
+    }
+    socket.emit('empty forge',num);
 }
 socket.on('reforge', data => {
     // console.log('reforging packet: ',data);
@@ -616,6 +627,39 @@ socket.on('reforge', data => {
     smelt(data.data.all[0],data.data.all[1],true);
 
 });
+//Crafting Table Functions
+socket.on('craft', book => {
+    action.innerHTML = " ";
+    action.innerHTML += `${spanner("Crafting Table","orange")} <br>`;
+    player.data = book;
+    for ( lvl in book ){
+        if(lvl>0&&lvl <= player.craft){
+            action.innerHTML += ` Skill Level: ${spanner(lvl ,'cyan')} <br> `;
+            let count = 0;
+            book[lvl].map( item => {
+                // console.log('recipe : ',item);
+                action.innerHTML += `Name: ${spanner(item.name,"white")} Xp: ${spanner(item.xp,"cyan")} <a href="javascript:craft(${lvl},${count});"> Make </a> <br> `;
+                action.innerHTML += `* *Ingredients: `;
+                for ( i in item.ingredients){
+                    // console.log(item.ingredients[i], "consoling ",book,i);
+                    action.innerHTML += `${spanner(item.ingredients[i],"grey")} : `;
+                }
+                count++;
+                action.innerHTML += "<br>";
+            });
+        }
+    }
+    console.log('crafting: ',book);
+});
+function craft(lvl,num){
+    console.log(`crafting level: ${lvl}, item number: ${num}`);
+    let craft = player.data[lvl][num];
+    let post = document.createElement('li');
+    post.innerHTML += `Crafting Attempt: ${spanner(craft.name,'white')} will take ${spanner(craft.time,"cyan")} ticks to complete... `;
+    msgs.appendChild(post);
+    socket.emit('crafting attempt',craft);
+    // console.log(craft);
+}
 //server reboot event to tell client to refresh
 socket.on('reboot', () => {
     alert('Server has rebooted since you connected, please refresh your browser.');
