@@ -134,8 +134,12 @@ io.on('connection', socket => {
         socket.emit('forge');
     });
     socket.on('empty forge', data => {
-        console.log('empty forge');
-        PLAYER_LIST[socket.id].PCforge.empty(data.num);
+        // console.log('empty forge',data);
+        if(data==1){
+            PLAYER_LIST[socket.id].PCforge.metal1={name:"none",purity:0};
+        } else if (data==2){
+            PLAYER_LIST[socket.id].PCforge.metal2={name:"none",purity:0};
+        }
         let player = PLAYER_LIST[socket.id];
         socket.emit('player update', {player,atChest:false});
         socket.emit('forge');
