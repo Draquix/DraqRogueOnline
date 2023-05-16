@@ -559,7 +559,6 @@ socket.on('chest' ,()=> {
     storage();
 });
 //Forging Functions
-socket.on('forge', forging);
 function forging(){
     player.PCforge.inUse=true;
     forge = player.PCforge;
@@ -611,6 +610,7 @@ function forging(){
     action.innerHTML += `<br> <a href="javascript:emptyF(1);"> Empty Primary </a> <br>`;
     action.innerHTML += `<a href="javascript:emptyF(2);"> Empty Secondary </a> <br>`;   
 }
+socket.on('forge', forging);
 function emptyF(num){
     // console.log("Emptying forge... ",player.PCforge);
     if(num==1){

@@ -184,7 +184,7 @@ io.on('connection', socket => {
         data.ingredients.forEach(element => {
             console.log(element,attempt);
             for (i in PLAYER_LIST[socket.id].backpack){
-                if(element==PLAYER_LIST[socket.id].backpack[i]){
+                if(element==PLAYER_LIST[socket.id].backpack[i].name){
                     PLAYER_LIST[socket.id].backpack.splice(i,1);
                     attempt = true;
                 }
