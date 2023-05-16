@@ -29,6 +29,7 @@
     "http": "^0.0.1-security",
     "mongodb": "^4.4.1",
     "mongojs": "^3.1.0",
+    "nodemon": "^2.0.22",
     "path": "^0.12.7",
     "socket.io": "^4.5.4"
   }
