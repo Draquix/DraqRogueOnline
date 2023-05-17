@@ -257,7 +257,7 @@ function charDisplay(atChest){
     } else if (player.PCforge.inUse===true){
         for(i in player.backpack){
             item.innerHTML += `A ${player.backpack[i].name}`;
-            if(player.backpack[i].type==="ore"){
+            if(player.backpack[i].type==="ore" || (player.backpack[i].type==="stack" && player.backpack[i].mtype==="ore")){
                 item.innerHTML += ` <a href="javascript:putInForge(${i});"> Load Forge </a> ,`;
             } else { item.innerHTML += ", "};
         }
@@ -411,6 +411,7 @@ function stackThis(itemName){
         // console.log("item i",pack[i]);
         if(pack[i].name===itemName){
             targetSplice.push(i);
+            stack.mtype = pack[i].type;
             stack.kg+=pack[i].kg;
             stack.quantity++;
             stack.pack.push(pack[i]);
@@ -425,6 +426,15 @@ function stackThis(itemName){
 //forging functions
 function putInForge(num){
     let ore = player.backpack[num];
+    if( ore.type==="stack"){
+        for(i in ore.quantity){
+            if(Forge.addOre(ore)){
+                player.PCforge = Forge;
+                socket.emit('load forge', {num:num});
+            }
+        }
+        player.backpack.splice(num,1);
+    }
     let forge = player.PCforge;
     if(Forge.addOre(ore)){
         // console.log('put in forge worked...',forge.metal1,forge.metal2);

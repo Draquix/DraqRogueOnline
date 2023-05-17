@@ -125,8 +125,17 @@ io.on('connection', socket => {
     });
     socket.on('load forge', data => {
         let ore = PLAYER_LIST[socket.id].backpack[data.num];
+        console.log('loadforge ore: ',ore);
+        if(ore.type === "stack"){
+            for(i in ore.pack){
+                console.log('loading ore stack',ore,i);
+                PLAYER_LIST[socket.id].PCforge.addOre(ore.pack[i]);
+                console.log('forge obj: ',PLAYER_LIST[socket.id].PCforge);
+            }
+        } else {
+            PLAYER_LIST[socket.id].PCforge.addOre(ore);
+        }
         PLAYER_LIST[socket.id].backpack.splice(data.num,1);
-        PLAYER_LIST[socket.id].PCforge.addOre(ore);
         let player = PLAYER_LIST[socket.id];
         // console.log('loaded into forge: ',player.PCforge);
         player.kg -= ore.kg;
