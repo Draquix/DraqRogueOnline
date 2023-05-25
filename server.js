@@ -14,6 +14,7 @@ const obj = require('./lib/objects');
 const nod = require('./lib/nodes');
 const pc = require('./lib/player');
 const maps = require('./lib/maps');
+const mob = require('./lib/mobs');
 const e = require('express');
 
 //Global Variablies
@@ -248,7 +249,10 @@ function collision(id,x,y,targ){
         // console.log('not implemented yet.');
     } else if (targ==="="){
         socket.emit('forge');
-    }   
+    } else if (targ==="m"){
+        PLAYER_LIST[id].data=mob.mobBox[1];
+        socket.emit('mob');
+    }
     console.log('collision target: ',x,y,targ);
 }
 //Async runtime for live gameplay -- first for update screen and draw player

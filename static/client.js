@@ -568,6 +568,9 @@ socket.on('node',data => {
 socket.on('chest' ,()=> {
     storage();
 });
+socket.on('mob', data => {
+    console.log('mob collision with this: ',data);
+});
 //Forging Functions
 function forging(){
     player.PCforge.inUse=true;
