@@ -148,6 +148,14 @@ function draw(map){
                 ctx.fillStyle = "yellow";
                 ctx.fillText('*',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
             }
+            if (map[i][j]==='m'){
+                ctx.fillStyle = 'red';
+                if (player.data.symb) {
+                    ctx.fillText(player.data.symb,(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+                } else {
+                    ctx.fillText('m',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+                }
+            }
             if (map[i][j]===","){
                 ctx.fillStyle = 'white';
                 ctx.fillText('.',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
@@ -669,6 +677,23 @@ function craft(lvl,num){
     msgs.appendChild(post);
     socket.emit('crafting attempt',craft);
     // console.log(craft);
+}
+//Mobs (as in monsters/mobiles), and Combat server calls and functions
+//receive server packet
+socket.on(mob, data => {
+    console.log('combat mob incoming: ',data);
+});
+//display mob onscreen in action panel
+function mobDisplay(mob){
+    console.log('mob displaying:',mob);
+    action.innerHTML = " ";
+    action.innerHTML += `${spanner('Monster:','red')} ${spanner(mob.name,'green')} <br>`;
+    action.innerHTML += `Hp: ${spanner(mob.hp,'blue')} || Str: ${spanner(mob.str,'cyan')} - Agi: ${spanner(mob.agi,'cyan')} - Def: ${spanner(mob.def,'cyan')} <br>`;
+    action.innerHTML += `Attack Mode: <a href="javascript:attack('aggro');"> Aggressive </a> || <a href="javascript:attack('deff')"> Defensive </a> <br>`; 
+}
+//combat action style
+function attack(style){
+    console.log('attacking: ',style);
 }
 //server reboot event to tell client to refresh
 socket.on('reboot', () => {
