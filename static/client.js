@@ -433,6 +433,7 @@ function stackThis(itemName){
     itemDisplay(stack);
     socket.emit('stackpack',{stack,del:targetSplice});
 }
+//                         Skills Section
 //forging functions
 function putInForge(num){
     let ore = player.backpack[num];
@@ -579,8 +580,22 @@ socket.on('chest' ,()=> {
     storage();
 });
 socket.on('mob', data => {
+    mob = data;
+    combat();
     console.log('mob collision with this: ',data);
 });
+function mobDisplay(mob){
+    action.innerHTML = " ";
+    console.log('combat is displaying this mob: ',mob);
+    let stats = mob.stats
+    action.innerHTML += `Enemy Encounter: ${spanner(mob.name,mob.color)}<br>`;
+    action.innerHTML += `Hp: ${spanner(stats.chp,'cyan')}/${spanner(stats.hp,'blue')} -=- XP: ${spanner(mob.xp,'magenta')} -=- GP: ${spanner(mob.gold,'yellow')}<br>`;
+}
+function combat(){
+    if(mob.alive===true){
+        mobDisplay(mob);
+    }
+}
 //Forging Functions
 function forging(){
     player.PCforge.inUse=true;
