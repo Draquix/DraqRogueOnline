@@ -250,8 +250,10 @@ function collision(id,x,y,targ){
     } else if (targ==="="){
         socket.emit('forge');
     } else if (targ==="m"){
-        PLAYER_LIST[id].data=mob.mobBox[1];
-        socket.emit('mob');
+        PLAYER_LIST[id].doFlag='hostile encounter';
+        let s = Math.floor(Math.random()*mob.mobBox.length);
+        PLAYER_LIST[id].data=mob.mobBox[s];
+        socket.emit('mob', PLAYER_LIST[id].data);
     }
     console.log('collision target: ',x,y,targ);
 }

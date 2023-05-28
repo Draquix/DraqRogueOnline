@@ -128,6 +128,7 @@ var player={
     ypos:1,
     gear:{Tool:[]}
 }
+var mob = { alive:false};
 //draw map function
 function draw(map){
     ctx.clearRect(0,0,600,600)
@@ -147,6 +148,15 @@ function draw(map){
             if (map[i][j]==="0" || map[i][j]==="1" || map[i][j]==="2" || map[i][j]==="3" || map[i][j]==="4" || map[i][j]==="5" || map[i][j]==="6" || map[i][j]==="7" || map[i][j]==="8"){
                 ctx.fillStyle = "yellow";
                 ctx.fillText('*',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+            }
+            if (map[i][j]==="m"){
+                if(mob.alive){
+                    ctx.fillStyle = mob.color;
+                    ctx.fillText(mob.ascii,(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillText('m',(xpos*(j)*tile)+1, (ypos*(i+1)*tile)+1);
+                }
             }
             if (map[i][j]===","){
                 ctx.fillStyle = 'white';

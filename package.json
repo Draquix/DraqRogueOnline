@@ -34,5 +34,8 @@
     "path": "^0.12.7",
     "rot-js": "^2.2.0",
     "socket.io": "^4.5.4"
+  },
+  "directories": {
+    "lib": "lib"
   }
 }
