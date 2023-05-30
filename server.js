@@ -278,7 +278,7 @@ function collision(id,x,y,targ){
             if(PLAYER_LIST[id].data.alive!=true){
                 PLAYER_LIST[id].doFlag='hostile encounter';
                 let s = Math.floor(Math.random()*mob.mobBox.length);
-                PLAYER_LIST[id].data=mob.mobBox[s];
+                PLAYER_LIST[id].data=mob.assemble(mob.mobBox[s]);
                 socket.emit('mob', PLAYER_LIST[id].data);
             } else {
                 console.log('player already has a target');
@@ -347,6 +347,39 @@ setInterval( function () {
                     PLAYER_LIST[i].data = {};
                     socket.emit('msg',{msg:"You do not have a pickaxe equipped for mining."});
                 }
+            }
+            if(PLAYER_LIST[i].doFlag==='hostile encounter'){
+                let act = PLAYER_LIST[i].attack(PLAYER_LIST[i].data);
+                let msg = `You attack the monster `;
+                if(act.hit===true){
+                    socket.emit('mobhit',act);
+                    msg += `and hit for ${act.dam} hp of damage! `;
+                    PLAYER_LIST[i].data.chp -= act.dam;
+                    if(PLAYER_LIST[i].data.chp<1){
+                        PLAYER_LIST[i].coin += PLAYER_LIST[i].data.gold;
+                        PLAYER_LIST[i].exp += PLAYER_LIST[i].data.xp;
+                        PLAYER_LIST[i].data = {}; PLAYER_LIST[i].doFlag = 'nothing';
+                        msg += ` ...and the mob is dead.`;
+                        let player = PLAYER_LIST[i];
+                        socket.emit('player update',{player,atChest:false});
+                    }
+                } else {
+                    msg += ` and miss... `;
+                }
+                if(PLAYER_LIST[i].doFlag!='nothing'){
+                    // console.log('act return from player attack()',act);
+                    act = PLAYER_LIST[i].defend(PLAYER_LIST[i].data);
+                    // console.log('act return from player defend()',act);
+                    if(act.hit===true){
+                        msg += act.damage.msg;
+                        // PLAYER_LIST[i].hp -= act.damage.d;
+                    } else {
+                        msg += `The ${PLAYER_LIST[i].data.name} attacks but it misses.`;
+                    }
+                    // let player = SOCKET_LIST[i];
+                    // socket.emit('player update',{player,atChest:false});
+                    }
+                socket.emit('msg',{msg:msg,color:'red'});
             }
             if(PLAYER_LIST[i].doFlag==='smelting'||PLAYER_LIST[i].doFlag==='smelting all'){
                 // console.log('currently smelting :',PLAYER_LIST[i].data);

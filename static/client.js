@@ -116,6 +116,7 @@ socket.on('player update', data => {
         charDisplay();
     }
     if(player.doFlag==='hostile encounter'){
+        console.log('player update in combat',player.data);
         mobDisplay();
     }
 });
@@ -586,6 +587,21 @@ socket.on('mob', data => {
     mob = data;
     combat();
     console.log('mob collision with this: ',data);
+});
+socket.on('mobhit', data => {
+    console.log('mobhit data pack',data);
+    mob.chp -= data.dam;
+    if(mob.chp<1){
+        // mob.alive===false;
+        // player.coin += mob.gold;
+        // player.exp += mob.xp;
+        mob.ascii='m'; mob.color="grey";
+        player.doFlag='nothing';
+        let post = document.createElement('li');
+        post.style = 'color:cyan';
+        post.innerHTML = `You killed the ${spanner(mob.name,'red')} gaining ${spanner(mob.gold,'yellow')} coins and ${spanner(mob.xp,"white")} combat xp!`;
+    }
+    mobDisplay();
 });
 function mobDisplay(){
     action.innerHTML = " ";
