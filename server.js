@@ -181,12 +181,17 @@ io.on('connection', socket => {
     socket.on('key press', data => {
         // console.log('Key fired: ',data);
         var player = PLAYER_LIST[data.id];
-        PLAYER_LIST[socket.id].doFlag = "nothing"; PLAYER_LIST[socket.id].data = {};
-        if(data.target===","||data.target==="."||data.target==="+"||data.target===";"){
+        if (PLAYER_LIST[socket.id].doFlag!='hostile encounter'){
+            PLAYER_LIST[socket.id].doFlag = "nothing"; PLAYER_LIST[socket.id].data = {};
+            if(data.target===","||data.target==="."||data.target==="+"||data.target===";"){
             player.move(data.inputDir);
-        } else {
+            } else {
             collision(data.id,player.xpos,player.ypos,data.target);
+            }
+        } else {
+            socket.emit('msg',{msg:"You are already in combat!"});
         }
+        
     });
     socket.on('crafting attempt', data => {
         console.log('craft attempt : ',data);
@@ -213,6 +218,24 @@ io.on('connection', socket => {
         PLAYER_LIST[socket.id].levelUp(data);
         let player = PLAYER_LIST[socket.id];
         socket.emit('player update', {player,atChest:false});
+    });
+    socket.on('combat style', data => {
+        PLAYER_LIST[socket.id].combatStyle = data;
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update', {player,atChest:false});
+    });
+    socket.on('flee combat', data => {
+        let chance = .5 - (data/10) + (PLAYER_LIST[socket.id].agi/10)
+        let numb = Math.random();
+        console.log('fleeing combat with ',chance,numb);
+        if(chance>numb){
+            PLAYER_LIST[socket.id].doFlag="nothing";
+            let player = PLAYER_LIST[socket.id];
+            socket.emit('player update',{player,atChest:false});
+            socket.emit('msg',{msg:"You ran away from combat!"});
+        } else {
+            socket.emit('msg',{msg:"You try to bravely run away, and failed..."});
+        }
     });
 });
 //Collision for map interaction
@@ -250,11 +273,18 @@ function collision(id,x,y,targ){
     } else if (targ==="="){
         socket.emit('forge');
     } else if (targ==="m"){
-        PLAYER_LIST[id].doFlag='hostile encounter';
-        let s = Math.floor(Math.random()*mob.mobBox.length);
-        PLAYER_LIST[id].data=mob.mobBox[s];
-        socket.emit('mob', PLAYER_LIST[id].data);
-    }
+        if(PLAYER_LIST[id].data){
+            console.log(PLAYER_LIST[id].data, 'data chunk on player');
+            if(PLAYER_LIST[id].data.alive!=true){
+                PLAYER_LIST[id].doFlag='hostile encounter';
+                let s = Math.floor(Math.random()*mob.mobsList.length);
+                PLAYER_LIST[id].data=mob.mobMaker(mob.mobsList[s]);
+                socket.emit('mob', PLAYER_LIST[id].data);
+            } else {
+                console.log('player already has a target');
+                PLAYER_LIST[id].doFlag='hostile encounter';
+            }
+    }}
     console.log('collision target: ',x,y,targ);
 }
 //Async runtime for live gameplay -- first for update screen and draw player

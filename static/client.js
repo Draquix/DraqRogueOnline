@@ -115,6 +115,9 @@ socket.on('player update', data => {
     } else {
         charDisplay();
     }
+    if(player.doFlag==='hostile encounter'){
+        mobDisplay();
+    }
 });
 //initializes the client
 let post = document.createElement('p');
@@ -433,6 +436,7 @@ function stackThis(itemName){
     itemDisplay(stack);
     socket.emit('stackpack',{stack,del:targetSplice});
 }
+//                         Skills Section
 //forging functions
 function putInForge(num){
     let ore = player.backpack[num];
@@ -579,8 +583,33 @@ socket.on('chest' ,()=> {
     storage();
 });
 socket.on('mob', data => {
+    mob = data;
+    combat();
     console.log('mob collision with this: ',data);
 });
+function mobDisplay(){
+    action.innerHTML = " ";
+    console.log('combat is displaying this mob: ',mob);
+    let stats = mob.stats
+    action.innerHTML += `Enemy Encounter: ${spanner(mob.name,mob.color)}<br>`;
+    action.innerHTML += `Hp: ${spanner(mob.chp,'cyan')}/${spanner(mob.hp,'blue')} -=- XP: ${spanner(mob.xp,'magenta')} -=- GP: ${spanner(mob.gold,'yellow')} <br>`;
+    action.innerHTML += `Str: ${spanner(stats.str,'blue')} || Def: ${spanner(stats.def,'blue')} || Agi: ${spanner(stats.agi,'blue')}<br>`;
+}
+function combatStyle(style){
+    player.combatStyle = style;
+    socket.emit('combat style', style);
+}
+function combat(){
+    if(mob.alive===true){
+        mobDisplay();
+    }
+    action.innerHTML += `Combat Style: ${spanner(player.combatStyle,'red')} `;
+    action.innerHTML += `<a href="javascript:combatStyle('basic');"> Basic </a> | <a href="javascript:combatStyle('aggressive');"> Aggressive </a> | <a href="javascript:combatStyle('accurate');"> Accurate </a> | <a href="javascript:combatStyle('defensive');"> Defensive </a>`;
+    action.innerHTML += spanner('Flee!!','magenta') + "<a href='javascript:fleeCombat();'> Run Away </a>"
+}
+function fleeCombat(){
+    socket.emit('flee combat',mob.stats.agi);
+}
 //Forging Functions
 function forging(){
     player.PCforge.inUse=true;
