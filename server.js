@@ -277,8 +277,8 @@ function collision(id,x,y,targ){
             console.log(PLAYER_LIST[id].data, 'data chunk on player');
             if(PLAYER_LIST[id].data.alive!=true){
                 PLAYER_LIST[id].doFlag='hostile encounter';
-                let s = Math.floor(Math.random()*mob.mobBox.length);
-                PLAYER_LIST[id].data=mob.mobBox[s];
+                let s = Math.floor(Math.random()*mob.mobsList.length);
+                PLAYER_LIST[id].data=mob.mobMaker(mob.mobsList[s]);
                 socket.emit('mob', PLAYER_LIST[id].data);
             } else {
                 console.log('player already has a target');
