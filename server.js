@@ -21,6 +21,7 @@ const e = require('express');
 let SOCKET_LIST = {};
 var PLAYER_LIST = {};
 let forge = new nod.Forge();
+
 //Socket.io handling for client/server communications
 io.on('connection', socket => {
     console.log('a client has connected');
@@ -196,7 +197,7 @@ io.on('connection', socket => {
     socket.on('crafting attempt', data => {
         console.log('craft attempt : ',data);
         let attempt = false;
-        data.ingredients.forEach(element => {
+        data.craft.ingredients.forEach(element => {
             console.log(element,attempt);
             for (i in PLAYER_LIST[socket.id].backpack){
                 if(element==PLAYER_LIST[socket.id].backpack[i].name){
@@ -205,10 +206,12 @@ io.on('connection', socket => {
                 }
             }
         });
+        let player = PLAYER_LIST[socket.id];
+        socket.emit('player update',{player,atChest:"false"});
         if(attempt === true) {
             PLAYER_LIST[socket.id].doFlag = "crafting at table";
             PLAYER_LIST[socket.id].data = data;
-            PLAYER_LIST[socket.id].data.cc++;
+            PLAYER_LIST[socket.id].data.craft.cc++;
         } else {
             socket.emit('msg',{msg:"An attempt at crafting was rejected for not having all needed materials.",color:'red'});
         }
@@ -304,11 +307,21 @@ setInterval( function () {
          });
     }
     io.emit('Tick',pack);
-},200);
-
+},100);
+let seconds = 0;
+let minutes = 0;
 setInterval( function () {
     
     for(i in PLAYER_LIST){
+        seconds += 3;
+        if(seconds%60===0){
+            minutes++;
+            console.log('game running for ', minutes,' minutes.');
+            PLAYER_LIST[i].hp++;
+            if(PLAYER_LIST[i].hp>PLAYER_LIST[i].mHp){
+                PLAYER_LIST[i].hp = PLAYER_LIST[i].mHp;
+            }
+        }
         var socket = SOCKET_LIST[PLAYER_LIST[i].id]
         if(!(PLAYER_LIST[i].doFlag==="nothing")){
             if(PLAYER_LIST[i].doFlag==="mining"){
@@ -391,19 +404,31 @@ setInterval( function () {
             }
             if(PLAYER_LIST[i].doFlag==='crafting at table'){
                 console.log('currently crafting',PLAYER_LIST[i].data);
-                if(PLAYER_LIST[i].data.cc===PLAYER_LIST[i].data.time){
+                if(PLAYER_LIST[i].data.craft.cc===PLAYER_LIST[i].data.craft.time){
                     let craft = PLAYER_LIST[i].data;
                     console.log('successful craft: ',craft);
-                    let result = `You successfully crafted a ${craft.name} and gained ${craft.xp} XP points.`;
-                    PLAYER_LIST[i].craftXp += craft.xp;
+                    let result = `You successfully crafted a ${craft.craft.name} and gained ${craft.craft.xp} XP points.`;
+                    // console.log(obj.recipeBook[1]);
+                    let item = obj.recipeBook[craft.l][craft.n].makeObj();
+                    console.log('this is the finished item ',item);
+                    if(PLAYER_LIST[i].liftable(item)){
+                        PLAYER_LIST[i].kg += item.kg;
+                        PLAYER_LIST[i].backpack.push(item);
+                    }
+                    console.log('player backpack',PLAYER_LIST[i].backpack);
+                    PLAYER_LIST[i].craftXp += craft.craft.xp;
+                    let player = PLAYER_LIST[i];
+                    socket.emit('player update',{player,atChest:false});
+                    PLAYER_LIST[i].doFlag = 'nothing'; PLAYER_LIST[i].data = {};
                     if(PLAYER_LIST[i].craftXp>=PLAYER_LIST[i].craftTnl){
                         PLAYER_LIST[i].craft++; PLAYER_LIST[i].craftTnl = 40*PLAYER_LIST[i].craft*1.2;
                         socket.emit('msg',{msg:"Your crafting has leveled up!"});
                     }
                     socket.emit('msg',{msg:result,color:'blue'});
                 }
-                PLAYER_LIST[i].data.cc++;
-
+                if(PLAYER_LIST[i].data.craft){
+                    PLAYER_LIST[i].data.craft.cc++;
+                }
             }
             if(PLAYER_LIST[i].doFlag==="woodchopping"){
                 if(PLAYER_LIST[i].gear.Tool.length>0 && PLAYER_LIST[i].gear.Tool[0].skill==="chop"){
@@ -445,6 +470,11 @@ setInterval( function () {
                     PLAYER_LIST[i].data = {};
                     socket.emit('msg',{msg:"You need to be using an axe to chop at trees.",color:'red'});
                 }
+            }
+            if(PLAYER_LIST[i].doFlag==='hostile encounter'){
+                let mob = PLAYER_LIST[i].data;
+                let pack = PLAYER_LIST[i].attack(mob);
+                console.log(pack);
             }
         }
     }

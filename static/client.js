@@ -296,7 +296,7 @@ function equipDisplay(){
     action.innerHTML = "";
     for (const key in player.gear){
         let item = document.createElement('p');
-        console.log(player.gear[key],key);
+        // console.log(player.gear[key],key);
         if(player.gear[key].length){
             var gear = player.gear[key][0];
             item.innerHTML = `${key}: A ${spanner(gear.name,"white")} `;
@@ -709,7 +709,7 @@ function craft(lvl,num){
     let post = document.createElement('li');
     post.innerHTML += `Crafting Attempt: ${spanner(craft.name,'white')} will take ${spanner(craft.time,"cyan")} ticks to complete... `;
     msgs.appendChild(post);
-    socket.emit('crafting attempt',craft);
+    socket.emit('crafting attempt',{craft,l:lvl,n:num});
     // console.log(craft);
 }
 //server reboot event to tell client to refresh
