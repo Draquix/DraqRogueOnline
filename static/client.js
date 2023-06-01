@@ -277,7 +277,7 @@ function charDisplay(atChest){
     } else {
         for(i in player.backpack){
             item.innerHTML += `A ${player.backpack[i].name}- ${player.backpack[i].kg} kgs `
-            if(player.backpack[i].type==="tool"){
+            if(player.backpack[i].type==="tool"||player.backpack[i].type==="weapon"){
                 item.innerHTML += ` <a href="javascript:equip(${i});"> Equip </a>, `;
             } else if(player.backpack[i].stackable===true){
                 item.innerHTML += ` <a href="javascript:stackThis('${player.backpack[i].name}');"> stack </a>,`;
@@ -394,6 +394,9 @@ function itemDisplay(item){
     }
     if(item.purity){
         disp.innerHTML += `<br> This ore is ${spanner(item.purity*100,"orange")}% pure.`;
+    }
+    if(item.dam){
+        disp.innerHTML += `<br> This weapon can do between ${spanner(item.dam[0],'orange')} and ${spanner(item.dam[1],'red')}hp of damage.`;
     }
     disp.innerHTML += `<br> Weight: ${spanner(item.kg,"yellow")}`;
     action.appendChild(disp);
@@ -582,6 +585,8 @@ socket.on('node',data => {
 socket.on('chest' ,()=> {
     storage();
 });
+//  Combat!!!
+//mobs
 socket.on('mob', data => {
     mob = data;
     combat();
@@ -595,6 +600,7 @@ function mobDisplay(){
     action.innerHTML += `Hp: ${spanner(mob.chp,'cyan')}/${spanner(mob.hp,'blue')} -=- XP: ${spanner(mob.xp,'magenta')} -=- GP: ${spanner(mob.gold,'yellow')} <br>`;
     action.innerHTML += `Str: ${spanner(stats.str,'blue')} || Def: ${spanner(stats.def,'blue')} || Agi: ${spanner(stats.agi,'blue')}<br>`;
 }
+//combat controls
 function combatStyle(style){
     player.combatStyle = style;
     socket.emit('combat style', style);

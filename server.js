@@ -64,7 +64,7 @@ io.on('connection', socket => {
         });
     socket.on('equip', data => {
         var item = PLAYER_LIST[socket.id].backpack[data.index];
-        // console.log('trying to equip: ',item);
+        console.log('trying to equip: ',item);
         if(item.type==="tool"){
             if(PLAYER_LIST[socket.id].gear.Tool.length>0){
                 let removed = PLAYER_LIST[socket.id].gear.Tool[0];
@@ -73,10 +73,25 @@ io.on('connection', socket => {
             }
             PLAYER_LIST[socket.id].gear.Tool.push(item);
             socket.emit('msg',{msg:`You equipped the ${item.name} as your tool.`,color:'light gray'});
+            PLAYER_LIST[socket.id].backpack.splice(data.index,1);
+            let player = PLAYER_LIST[socket.id];
+            socket.emit('player update', {player,atChest:false});
         }
-        PLAYER_LIST[socket.id].backpack.splice(data.index,1);
-        let player = PLAYER_LIST[socket.id];
-        socket.emit('player update', {player,atChest:false});
+        console.log(item,PLAYER_LIST[socket.id].gear,'after equip...');
+        if(item.type==='weapon'){    
+            console.log('weapon equip...')
+
+            if(PLAYER_LIST[socket.id].gear.Weapon.length>0){
+                let removed = PLAYER_LIST[socket.id].gear.Weapon[0];
+                PLAYER_LIST[socket.id].gear.Weapon.pop();
+                PLAYER_LIST[socket.id].backpack.push(removed);
+            }
+            PLAYER_LIST[socket.id].gear.Weapon.push(item);
+            socket.emit('msg',{msg:`You equipped the ${item.name} as your weapon.`,color:'pink'});
+            PLAYER_LIST[socket.id].backpack.splice(data.index,1);
+            let player = PLAYER_LIST[socket.id];
+            socket.emit('player update', {player,atChest:false});
+        }
     });
     socket.on('unequip', data => {
         let item = PLAYER_LIST[socket.id].gear[data.key][0];
@@ -473,6 +488,9 @@ setInterval( function () {
             }
             if(PLAYER_LIST[i].doFlag==='hostile encounter'){
                 let mob = PLAYER_LIST[i].data;
+                if (PLAYER_LIST[i].gear.Weapon.length>0){
+                    console.log(PLAYER_LIST[i].gear.Weapon[0]);
+                }
                 let pack = PLAYER_LIST[i].attack(mob);
                 console.log(pack);
             }
