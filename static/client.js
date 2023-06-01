@@ -246,7 +246,8 @@ function charDisplay(atChest){
     character.innerHTML = " ";
     let stats = document.createElement('p');
     stats.innerHTML = spanner(player.name,"violet") + " Statistics <BR> ";
-    stats.innerHTML += `Hitpoints: ${spanner(player.hp,"cyan")}/${spanner(player.mHp,"blue")} | Coins: ${spanner(player.coin,"yellow")} <br>`;
+    stats.innerHTML += `Hitpoints: ${spanner(player.hp,"cyan")}/${spanner(player.mHp,"blue")} | Coins: ${spanner(player.coin,"yellow")}<br>`;
+    stats.innerHTML += `Level: ${spanner(player.level,"green")} Xp/Tnl: ${spanner(player.exp,'white')} / ${spanner(player.expTnl,'yellow')} Trainings: ${spanner(player.trains,'orange')}<br>`;
     stats.innerHTML += `Strength: ${spanner(player.str,"white")} | Dexterity: ${spanner(player.agi,"white")} | Defense: ${spanner(player.def,"white")} <BR>`;
     stats.innerHTML += `Mining: ${spanner(player.mine,"green")} Xp/Tnl: ${spanner(player.mineXp,"white")} / ${spanner(player.mineTnl,"yellow")} | Forging: ${spanner(player.forge,"green")} Xp/Tnl: ${spanner(player.forgeXp,"white")} / ${spanner(player.forgeTnl,"yellow")} <BR>`;
     stats.innerHTML += `Woodcutting: ${spanner(player.chop,"green")} Xp/Tnl: ${spanner(player.chopXp,"white")} / ${spanner(player.chopTnl,"yellow")} | Crafting: ${spanner(player.craft,"green")} Xp/Tnl: ${spanner(player.craftXp,"white")} / ${spanner(player.craftTnl,"yellow")} <BR>`;
@@ -332,7 +333,6 @@ function equip(num){
         player.gear.Tool.push(item);
     }
     // console.log('backpack after equip',player.backpack);
-    equipDisplay();
     socket.emit('equip',{index:num});
     console.log('equipped finished, ',player);
 }
@@ -589,8 +589,8 @@ socket.on('chest' ,()=> {
 //mobs
 socket.on('mob', data => {
     mob = data;
-    combat();
     console.log('mob collision with this: ',data);
+    combat();
 });
 function mobDisplay(){
     action.innerHTML = " ";
@@ -600,22 +600,30 @@ function mobDisplay(){
     action.innerHTML += `Hp: ${spanner(mob.chp,'cyan')}/${spanner(mob.hp,'blue')} -=- XP: ${spanner(mob.xp,'magenta')} -=- GP: ${spanner(mob.gold,'yellow')} <br>`;
     action.innerHTML += `Str: ${spanner(stats.str,'blue')} || Def: ${spanner(stats.def,'blue')} || Agi: ${spanner(stats.agi,'blue')}<br>`;
 }
+
+function combat(){
+    if(mob.alive===true){
+        mobDisplay();
+        action.innerHTML += `Combat Style: ${spanner(player.combatStyle,'red')} `;
+        action.innerHTML += `<a href="javascript:combatStyle('basic');"> Basic </a> | <a href="javascript:combatStyle('aggressive');"> Aggressive </a> | <a href="javascript:combatStyle('accurate');"> Accurate </a> | <a href="javascript:combatStyle('defensive');"> Defensive </a>`;
+        action.innerHTML += spanner('Flee!!','magenta') + "<a href='javascript:fleeCombat();'> Run Away </a>"
+    }
+}
 //combat controls
 function combatStyle(style){
     player.combatStyle = style;
     socket.emit('combat style', style);
-}
-function combat(){
-    if(mob.alive===true){
-        mobDisplay();
-    }
-    action.innerHTML += `Combat Style: ${spanner(player.combatStyle,'red')} `;
-    action.innerHTML += `<a href="javascript:combatStyle('basic');"> Basic </a> | <a href="javascript:combatStyle('aggressive');"> Aggressive </a> | <a href="javascript:combatStyle('accurate');"> Accurate </a> | <a href="javascript:combatStyle('defensive');"> Defensive </a>`;
-    action.innerHTML += spanner('Flee!!','magenta') + "<a href='javascript:fleeCombat();'> Run Away </a>"
+    combat();
 }
 function fleeCombat(){
     socket.emit('flee combat',mob.stats.agi);
 }
+socket.on('round of battle', data => {
+    mob = data.mob;
+    // console.log('battle rounding',data);
+    combat();
+});
+
 //Forging Functions
 function forging(){
     player.PCforge.inUse=true;

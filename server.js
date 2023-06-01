@@ -64,7 +64,7 @@ io.on('connection', socket => {
         });
     socket.on('equip', data => {
         var item = PLAYER_LIST[socket.id].backpack[data.index];
-        console.log('trying to equip: ',item);
+        // console.log('trying to equip: ',item);
         if(item.type==="tool"){
             if(PLAYER_LIST[socket.id].gear.Tool.length>0){
                 let removed = PLAYER_LIST[socket.id].gear.Tool[0];
@@ -77,9 +77,9 @@ io.on('connection', socket => {
             let player = PLAYER_LIST[socket.id];
             socket.emit('player update', {player,atChest:false});
         }
-        console.log(item,PLAYER_LIST[socket.id].gear,'after equip...');
+        // console.log(item,PLAYER_LIST[socket.id].gear,'after equip...');
         if(item.type==='weapon'){    
-            console.log('weapon equip...')
+            // console.log('weapon equip...')
 
             if(PLAYER_LIST[socket.id].gear.Weapon.length>0){
                 let removed = PLAYER_LIST[socket.id].gear.Weapon[0];
@@ -451,7 +451,7 @@ setInterval( function () {
                         var result = `You swing your axe at the ${PLAYER_LIST[i].data.name}... `;
                         let rng = Math.random();
                         let skill = (PLAYER_LIST[i].chop/100+PLAYER_LIST[i].gear.Tool[0].bonus/100+PLAYER_LIST[i].data.baseDiff);
-                        console.log("skill attempting choppy chopp chop ",rng,skill);
+                        // console.log("skill attempting choppy chopp chop ",rng,skill);
                         if(rng<=skill){
                             PLAYER_LIST[i].data.count--;
                             result += ` and hit the trunk!`;
@@ -487,14 +487,46 @@ setInterval( function () {
                 }
             }
             if(PLAYER_LIST[i].doFlag==='hostile encounter'){
-                let mob = PLAYER_LIST[i].data;
+                var mob = PLAYER_LIST[i].data;
                 if (PLAYER_LIST[i].gear.Weapon.length>0){
                     console.log(PLAYER_LIST[i].gear.Weapon[0]);
                 }
-                let pack = PLAYER_LIST[i].attack(mob);
+                var pack = PLAYER_LIST[i].attack(mob);
                 console.log(pack);
-                let attack = mob.attack(PLAYER_LIST[i]);
-                console.log(attack);
+                if(pack.hit===true){
+                    mob.chp -= pack.damage;
+                }
+                if(mob.chp<1){
+                    console.log('dead mob!!');
+                    PLAYER_LIST[i].exp += mob.xp;
+                    PLAYER_LIST[i].coin += mob.gold
+                    socket.emit('msg',{msg:`You killed the ${mob.name}, gaining ${mob.xp} experience and ${mob.gold} coins!`});
+                    PLAYER_LIST[i].doFlag = 'nothing';
+                    PLAYER_LIST[i].data = {};
+                    if(player.exp>=player.expTnl){
+                        player.level++;
+                        player.trains += player.level;
+                        
+                    }
+                    let player = PLAYER_LIST[i];
+                    socket.emit('player update',{player,atChest:false});
+                } else {
+                    let attack = mob.attack(PLAYER_LIST[i]);
+                    console.log(attack);
+                    let player = PLAYER_LIST[i];
+                    pack.msg += " " + attack.msg;
+                    if(attack.hit){
+                        player.hp -= attack.d;
+                        if(player.hp<1){
+                            player.doFlag = 'dead';
+                            pack.msg += ' ...and you died.';
+                            pack.dead = true;
+                        }
+                        socket.emit('player update',{player,atChest:false});
+                    }
+                    socket.emit('round of battle',{mob,pack,attack});
+                }
+                socket.emit('msg',{msg:pack.msg,color:'red'});
             }
         }
     }
