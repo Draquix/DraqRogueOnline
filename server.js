@@ -493,10 +493,12 @@ setInterval( function () {
                 }
                 let pack = PLAYER_LIST[i].attack(mob);
                 console.log(pack);
+                let attack = mob.attack(PLAYER_LIST[i]);
+                console.log(attack);
             }
         }
     }
-},3000);
+},5000);
 
 
 //With all the files loaded, the below statement causes the server to boot up and listen for client connect
