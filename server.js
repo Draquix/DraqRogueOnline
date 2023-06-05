@@ -498,8 +498,9 @@ setInterval( function () {
                 }
                 if(mob.chp<1){
                     console.log('dead mob!!');
-                    PLAYER_LIST[i].exp += mob.xp;
-                    PLAYER_LIST[i].coin += mob.gold
+                    let player = PLAYER_LIST[i];
+                    player.exp += mob.xp;
+                    player.coin += mob.gold
                     socket.emit('msg',{msg:`You killed the ${mob.name}, gaining ${mob.xp} experience and ${mob.gold} coins!`});
                     PLAYER_LIST[i].doFlag = 'nothing';
                     PLAYER_LIST[i].data = {};
@@ -508,7 +509,6 @@ setInterval( function () {
                         player.trains += player.level;
                         
                     }
-                    let player = PLAYER_LIST[i];
                     socket.emit('player update',{player,atChest:false});
                 } else {
                     let attack = mob.attack(PLAYER_LIST[i]);
